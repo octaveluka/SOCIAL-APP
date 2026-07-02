@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compte supprimé — SocialApp</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="background:var(--background); display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px;">
+    <div style="max-width:480px; width:100%; text-align:center; background:var(--card-bg); border-radius:var(--radius); border:1px solid var(--border); padding:40px; box-shadow:var(--shadow-lg);">
+
+        <div style="width:80px; height:80px; background:#fee2e2; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px;">
+            <i class="fa-solid fa-user-slash" style="font-size:32px; color:#dc2626;"></i>
+        </div>
+
+        <h1 style="font-size:22px; font-weight:800; color:#111827; margin-bottom:8px;">
+            Compte supprimé
+        </h1>
+
+        <p style="color:#6b7280; font-size:14px; line-height:1.7; margin-bottom:24px;">
+            Votre compte a été supprimé car il ne respecte pas les standards de notre communauté.
+        </p>
+
+        <% if (reason && reason !== 'Non spécifié') { %>
+            <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:12px; padding:16px; margin-bottom:24px; text-align:left;">
+                <div style="font-size:11px; font-weight:700; color:#dc2626; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                    <i class="fa-solid fa-circle-exclamation"></i> Motif
+                </div>
+                <div style="font-size:14px; color:#7f1d1d; line-height:1.5;">
+                    <%= reason %>
+                </div>
+            </div>
+        <% } %>
+
+        <p style="font-size:13px; color:#9ca3af; line-height:1.6;">
+            Si vous pensez qu'il s'agit d'une erreur, veuillez contacter notre équipe de modération.
+        </p>
+    </div>
+</body>
+</html>

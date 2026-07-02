@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-visual">
+            <div class="auth-visual-content">
+                <i class="fa-solid fa-camera brand-icon"></i>
+                <h2>Personnalise ton profil</h2>
+                <p>Une photo de profil aide tes amis à te reconnaître et rend ton compte plus personnel.</p>
+                <div class="auth-visual-features">
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-image"></i>
+                        JPG, PNG, GIF ou WebP — max 2 Mo
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-crop-simple"></i>
+                        Recadrée automatiquement en carré
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        Modifiable à tout moment dans tes paramètres
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-form-side">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                    <span>SocialApp</span>
+                </div>
+
+                <h2>Ta photo de profil</h2>
+                <p class="auth-subtitle">Choisis une photo ou continue avec ton avatar</p>
+
+                <form action="/register/photo" method="POST" enctype="multipart/form-data" id="photoForm">
+
+                    <div class="rp-avatar-zone" id="avatarZone">
+                        <div class="rp-avatar-preview" id="avatarPreview">
+                            <img src="<%= currentAvatar %>" alt="Avatar actuel" id="previewImg">
+                            <div class="rp-avatar-overlay" id="avatarOverlay">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>Changer</span>
+                            </div>
+                        </div>
+                        <input type="file" name="photoProfil" id="photoInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;">
+                    </div>
+
+                    <p class="rp-hint" id="hintText">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Clique sur l'avatar pour choisir une photo
+                    </p>
+
+                    <div class="rp-actions">
+                        <button type="submit" class="btn rp-btn-upload" id="uploadBtn" style="display:none;">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            Utiliser cette photo
+                        </button>
+
+                        <button type="button" class="btn rp-btn-choose" id="chooseBtn">
+                            <i class="fa-solid fa-image"></i>
+                            Choisir une photo
+                        </button>
+
+                        <a href="/register/photo/skip" class="btn btn-secondary rp-btn-skip" id="skipBtn">
+                            <i class="fa-solid fa-person-running"></i>
+                            Continuer avec mon avatar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .rp-avatar-zone {
+            display: flex;
+            justify-content: center;
+            margin: 24px 0 8px;
+        }
+
+        .rp-avatar-preview {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 0 3px var(--primary-light), 0 0 0 5px var(--primary);
+            transition: box-shadow 0.2s;
+            overflow: hidden;
+        }
+
+        .rp-avatar-preview:hover {
+            box-shadow: 0 0 0 3px var(--primary-light), 0 0 0 5px var(--primary-dark);
+        }
+
+        .rp-avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 50%;
+            transition: filter 0.2s;
+        }
+
+        .rp-avatar-preview:hover img {
+            filter: brightness(0.75);
+        }
+
+        .rp-avatar-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, 0.55);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .rp-avatar-overlay i {
+            font-size: 22px;
+        }
+
+        .rp-avatar-preview:hover .rp-avatar-overlay {
+            opacity: 1;
+        }
+
+        .rp-avatar-preview.has-photo .rp-avatar-overlay {
+            opacity: 0;
+        }
+
+        .rp-avatar-preview.has-photo:hover .rp-avatar-overlay {
+            opacity: 1;
+        }
+
+        .rp-hint {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .rp-hint i {
+            color: var(--primary);
+        }
+
+        .rp-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .rp-btn-upload,
+        .rp-btn-choose {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .rp-btn-skip {
+            width: 100%;
+            justify-content: center;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .rp-badge-new {
+            display: inline-block;
+            background: #22c55e;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            margin-left: 8px;
+            vertical-align: middle;
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .rp-avatar-preview {
+            animation: popIn 0.35s cubic-bezier(.34,1.56,.64,1) both;
+        }
+    </style>
+
+    <script>
+        const avatarZone    = document.getElementById('avatarZone')
+        const avatarPreview = document.getElementById('avatarPreview')
+        const avatarOverlay = document.getElementById('avatarOverlay')
+        const previewImg    = document.getElementById('previewImg')
+        const photoInput    = document.getElementById('photoInput')
+        const uploadBtn     = document.getElementById('uploadBtn')
+        const chooseBtn     = document.getElementById('chooseBtn')
+        const skipBtn       = document.getElementById('skipBtn')
+        const hintText      = document.getElementById('hintText')
+
+        function openFilePicker() {
+            photoInput.click()
+        }
+
+        avatarPreview.addEventListener('click', openFilePicker)
+        chooseBtn.addEventListener('click', openFilePicker)
+
+        photoInput.addEventListener('change', function() {
+            const file = this.files[0]
+            if (!file) return
+
+            if (file.size > 2 * 1024 * 1024) {
+                showError("Le fichier est trop lourd (max 2 Mo).")
+                this.value = ''
+                return
+            }
+
+            const reader = new FileReader()
+            reader.onload = function(e) {
+                previewImg.src = e.target.result
+                avatarPreview.classList.add('has-photo')
+
+                uploadBtn.style.display = 'flex'
+                chooseBtn.innerHTML = '<i class="fa-solid fa-image"></i> Changer la photo'
+                hintText.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#22c55e"></i> Photo prête — clique sur "Utiliser cette photo" pour continuer'
+            }
+            reader.readAsDataURL(file)
+        })
+
+        function showError(msg) {
+            let el = document.getElementById('rpError')
+            if (!el) {
+                el = document.createElement('div')
+                el.id = 'rpError'
+                el.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;display:flex;align-items:center;gap:8px;margin-bottom:12px;'
+                document.querySelector('.rp-actions').before(el)
+            }
+            el.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + msg
+        }
+    </script>
+</body>
+</html>

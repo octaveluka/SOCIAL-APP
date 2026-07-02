@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'search' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'search' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Rechercher</h1>
+                    <div class="subtitle">Trouve des personnes sur SocialApp</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <form action="/search" method="GET">
+                    <div class="search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" name="q" value="<%= query %>" placeholder="Rechercher une personne..." autofocus>
+                        <% if (query) { %>
+                            <a href="/search" class="search-clear">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        <% } %>
+                    </div>
+                </form>
+            </div>
+
+            <% if (query && resultats.length === 0) { %>
+                <div class="card empty-state">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <p>Aucun résultat pour "<%= query %>"</p>
+                    <p>Essaie un autre nom</p>
+                </div>
+            <% } %>
+
+            <% if (!query && suggestions && suggestions.length > 0) { %>
+                <div class="card">
+                    <div class="section-title">
+                        <i class="fa-solid fa-user-plus"></i>
+                        Suggestions d'utilisateurs
+                    </div>
+                    <% suggestions.forEach(u => {
+                        const isFriend = currentUser.amis.some(id => id.toString() === u._id.toString())
+                        const requestSent = currentUser.demandesEnvoyees.some(id => id.toString() === u._id.toString())
+                        const requestReceived = currentUser.demandesRecues.some(id => id.toString() === u._id.toString())
+                    %>
+                        <div class="user-item">
+                            <a href="/profile/<%= u._id %>">
+                                <img src="<%= u.photoProfil %>" alt="">
+                            </a>
+                            <div class="user-item-info">
+                                <a href="/profile/<%= u._id %>" style="color:inherit;">
+                                    <div class="user-item-name"><%= u.nom %></div>
+                                </a>
+                                <% if (u.bio) { %>
+                                    <div class="user-item-sub" style="word-wrap: break-word; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                        <%= u.bio %>
+                                    </div>
+                                <% } %>
+                            </div>
+
+                            <% if (isFriend) { %>
+                                <span style="font-size:13px; color:var(--success); font-weight:600;">
+                                    <i class="fa-solid fa-user-check"></i> Ami
+                                </span>
+                            <% } else if (requestSent) { %>
+                                <form action="/friends/cancel/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-clock"></i> Annuler
+                                    </button>
+                                </form>
+                            <% } else if (requestReceived) { %>
+                                <form action="/friends/accept/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-check"></i> Accepter
+                                    </button>
+                                </form>
+                            <% } else { %>
+                                <form action="/friends/request/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-user-plus"></i> Ajouter
+                                    </button>
+                                </form>
+                            <% } %>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <% if (query && resultats.length > 0) { %>
+                <div class="card">
+                    <div class="section-title">
+                        <i class="fa-solid fa-users"></i>
+                        <%= resultats.length %> résultat<%= resultats.length > 1 ? 's' : '' %>
+                    </div>
+
+                    <% resultats.forEach(u => {
+                        const isFriend = currentUser.amis.some(id => id.toString() === u._id.toString())
+                        const requestSent = currentUser.demandesEnvoyees.some(id => id.toString() === u._id.toString())
+                        const requestReceived = currentUser.demandesRecues.some(id => id.toString() === u._id.toString())
+                    %>
+                        <div class="user-item">
+                            <a href="/profile/<%= u._id %>">
+                                <img src="<%= u.photoProfil %>" alt="">
+                            </a>
+                            <div class="user-item-info">
+                                <a href="/profile/<%= u._id %>" style="color:inherit;">
+                                    <div class="user-item-name"><%= u.nom %></div>
+                                </a>
+                                <% if (u.bio) { %>
+                                    <div class="user-item-sub" style="word-wrap: break-word; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                        <%= u.bio %>
+                                    </div>
+                                <% } %>
+                            </div>
+
+                            <% if (isFriend) { %>
+                                <span style="font-size:13px; color:var(--success); font-weight:600;">
+                                    <i class="fa-solid fa-user-check"></i> Ami
+                                </span>
+                            <% } else if (requestSent) { %>
+                                <form action="/friends/cancel/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-clock"></i> Annuler
+                                    </button>
+                                </form>
+                            <% } else if (requestReceived) { %>
+                                <form action="/friends/accept/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-check"></i> Accepter
+                                    </button>
+                                </form>
+                            <% } else { %>
+                                <form action="/friends/request/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-user-plus"></i> Ajouter
+                                    </button>
+                                </form>
+                            <% } %>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+        </main>
+    </div>
+</body>
+</html>

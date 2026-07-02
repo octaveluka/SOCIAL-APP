@@ -1,0 +1,45 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title><%= title %> — SocialApp</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/css/style.css?v=15">
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SocialApp">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- Préchargement du son pour les notifications -->
+<audio id="notificationSound" preload="auto" style="display:none;">
+    <source src="/sounds/Sale-notification-chime-sound-effect.mp3" type="audio/mpeg">
+</audio>
+<script src="/js/main.js?v=12" defer></script>
+<script src="/js/push.js" defer></script>
+<script src="/js/oracle.js?v=1" defer></script>
+<!-- vConsole DEBUG — ADMIN ONLY -->
+<% if (locals.user && locals.user.role === 'admin') { %>
+<script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+<script>var vConsole = new VConsole()</script>
+<% } %>
+<!-- Thème dynamique -->
+<script>
+(function() {
+    var theme = '<%= locals.userTheme || (locals.user && locals.user.theme) || "default" %>';
+    if (theme && theme !== 'default') {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.setAttribute('data-theme', theme);
+        });
+    }
+})();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((reg) => console.log('✅ Service Worker enregistré'))
+            .catch((err) => console.log('❌ Service Worker erreur:', err))
+    })
+}
+</script>

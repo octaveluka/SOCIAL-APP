@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'admin' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'admin' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Utilisateurs</h1>
+                    <div class="subtitle"><%= users.length %> utilisateur<%= users.length > 1 ? 's' : '' %> trouvé<%= users.length > 1 ? 's' : '' %></div>
+                </div>
+                <a href="/admin" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                    <i class="fa-solid fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+
+            <div id="toast" class="alert alert-success" style="display:none; position:fixed; top:80px; right:20px; z-index:999; max-width:320px;">
+                <i class="fa-solid fa-circle-check"></i>
+                <span id="toastText"></span>
+            </div>
+            <div id="errorToast" class="alert alert-error" style="display:none; position:fixed; top:80px; right:20px; z-index:999; max-width:320px;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorToastText"></span>
+            </div>
+
+            <!-- Recherche -->
+            <div class="card">
+                <form action="/admin/users" method="GET">
+                    <div class="search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" name="q" value="<%= query %>" placeholder="Rechercher par nom ou email...">
+                    </div>
+                </form>
+            </div>
+
+            <!-- Utilisateurs -->
+            <% users.forEach(u => {
+                const isRestricted = (type) => {
+                    if (!u.restrictions || !u.restrictions[type] || !u.restrictions[type].until) return false
+                    return new Date() < new Date(u.restrictions[type].until)
+                }
+                const minutesLeft = (type) => {
+                    if (!u.restrictions || !u.restrictions[type] || !u.restrictions[type].until) return 0
+                    return Math.max(0, Math.ceil((new Date(u.restrictions[type].until) - Date.now()) / 60000))
+                }
+            %>
+                <div class="card" data-user-id="<%= u._id %>" style="padding:0; overflow:hidden;">
+
+                    <!-- Ligne principale -->
+                    <div style="display:flex; align-items:flex-start; gap:14px; padding:16px 20px;">
+                        <img src="<%= u.photoProfil %>" alt=""
+                             style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--border); flex-shrink:0;">
+
+                        <div style="flex:1; min-width:0;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                                <a href="/profile/<%= u._id %>" style="font-weight:700; font-size:15px; color:var(--text-primary);">
+                                    <%= u.nom %>
+                                </a>
+                                <%- include('partials/badges', { badges: u.badges }) %>
+                                <span class="tag role-tag-<%= u._id %> <%= u.role === 'admin' ? 'tag-admin' : 'tag-user' %>">
+                                    <%= u.role === 'admin' ? 'Admin' : 'Utilisateur' %>
+                                </span>
+                                <span class="tag status-tag-<%= u._id %> <%= u.isDisabled ? 'tag-disabled' : 'tag-active' %>">
+                                    <%= u.isDisabled ? 'Désactivé' : 'Actif' %>
+                                </span>
+                                <% if (u.warnings && u.warnings.length > 0) { %>
+                                    <span class="tag" style="background:#fef3c7; color:var(--warning);">
+                                        <i class="fa-solid fa-triangle-exclamation"></i>
+                                        <%= u.warnings.length %> avert.
+                                    </span>
+                                <% } %>
+                            </div>
+                            <div style="font-size:13px; color:var(--text-secondary);"><%= u.email %></div>
+                            <div style="display:flex; gap:14px; margin-top:6px; flex-wrap:wrap;">
+                                <span style="font-size:12px; color:var(--text-muted);">
+                                    <i class="fa-solid fa-coins" style="color:#ca8a04;"></i>
+                                    <span class="wallet-balance-<%= u._id %>"><%= (u.walletBalance || 0).toLocaleString('fr-FR') %></span> coins
+                                </span>
+                                <span style="font-size:12px; color:var(--text-muted);">
+                                    <i class="fa-solid fa-star" style="color:#7c3aed;"></i>
+                                    <%= (u.xp || 0).toLocaleString('fr-FR') %> XP
+                                </span>
+                                <span style="font-size:12px; color:var(--text-muted);">
+                                    <i class="fa-solid fa-calendar"></i>
+                                    Inscrit le <%= new Date(u.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                                </span>
+                            </div>
+
+                            <!-- Badges existants -->
+                            <div class="badge-admin-list badges-list-<%= u._id %>" style="margin-top:8px;">
+                                <% u.badges.forEach(b => {
+                                    const labels = { verifie: 'Vérifié', moderateur: 'Modérateur', fondateur: 'Fondateur', premium: 'Premium', staff: 'Staff' }
+                                    const icons = { verifie: 'fa-check', moderateur: 'fa-shield', fondateur: 'fa-star', premium: 'fa-crown', staff: 'fa-screwdriver-wrench' }
+                                %>
+                                    <span class="badge-admin-item badge-<%= b.type %>">
+                                        <span class="user-badge badge-<%= b.type %>" style="margin-left:0;">
+                                            <i class="fa-solid <%= icons[b.type] %>"></i>
+                                        </span>
+                                        <%= labels[b.type] %>
+                                        <% if (u._id.toString() !== currentUserId) { %>
+                                            <i class="fa-solid fa-xmark badge-remove" data-type="<%= b.type %>"></i>
+                                        <% } %>
+                                    </span>
+                                <% }) %>
+                            </div>
+                        </div>
+
+                        <!-- Bouton actions -->
+                        <% if (u._id.toString() !== currentUserId) { %>
+                            <button class="btn btn-secondary toggle-actions-btn"
+                                    data-user-id="<%= u._id %>"
+                                    style="width:auto; padding:8px 14px; font-size:13px; flex-shrink:0;">
+                                <i class="fa-solid fa-ellipsis-vertical"></i> Actions
+                            </button>
+                        <% } else { %>
+                            <span style="font-size:12px; color:var(--text-muted); padding:8px; flex-shrink:0;">C'est toi</span>
+                        <% } %>
+                    </div>
+
+                    <!-- Panneau d'actions (caché par défaut) -->
+                    <% if (u._id.toString() !== currentUserId) { %>
+                    <div class="actions-panel-<%= u._id %>" style="display:none; border-top:1px solid var(--border); padding:16px 20px; background:var(--background);">
+
+                        <!-- === BADGES === -->
+                        <div class="mod-panel">
+                            <div class="mod-panel-header" onclick="togglePanel(this)">
+                                <i class="fa-solid fa-certificate" style="color:var(--primary);"></i>
+                                Badges
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; font-weight:600;">Ajouter un badge</div>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:0;">
+                                    <button class="add-badge-btn btn btn-secondary" data-type="verifie" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <span class="user-badge badge-verifie" style="margin-left:0; margin-right:4px;"><i class="fa-solid fa-check"></i></span> Vérifié
+                                    </button>
+                                    <button class="add-badge-btn btn btn-secondary" data-type="moderateur" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <span class="user-badge badge-moderateur" style="margin-left:0; margin-right:4px;"><i class="fa-solid fa-shield"></i></span> Modérateur
+                                    </button>
+                                    <button class="add-badge-btn btn btn-secondary" data-type="fondateur" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <span class="user-badge badge-fondateur" style="margin-left:0; margin-right:4px;"><i class="fa-solid fa-star"></i></span> Fondateur
+                                    </button>
+                                    <button class="add-badge-btn btn btn-secondary" data-type="premium" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <span class="user-badge badge-premium" style="margin-left:0; margin-right:4px;"><i class="fa-solid fa-crown"></i></span> Premium
+                                    </button>
+                                    <button class="add-badge-btn btn btn-secondary" data-type="staff" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <span class="user-badge badge-staff" style="margin-left:0; margin-right:4px;"><i class="fa-solid fa-screwdriver-wrench"></i></span> Staff
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- === RÔLE === -->
+                        <div class="mod-panel" style="margin-top:8px;">
+                            <div class="mod-panel-header" onclick="togglePanel(this)">
+                                <i class="fa-solid fa-user-gear" style="color:#7c3aed;"></i>
+                                Rôle et statut
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <button class="btn btn-secondary toggle-role-btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-user-shield"></i>
+                                        <%= u.role === 'admin' ? 'Retirer admin' : 'Rendre admin' %>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- === ENVOI DE COINS === -->
+                        <div class="mod-panel" style="margin-top:8px;">
+                            <div class="mod-panel-header" onclick="togglePanel(this)">
+                                <i class="fa-solid fa-coins" style="color:#ca8a04;"></i>
+                                Envoyer des coins
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <div class="coins-input-group" style="margin-bottom:10px;">
+                                    <input type="number" class="coins-amount" placeholder="Montant" min="1" max="100000">
+                                    <input type="text" class="coins-reason" placeholder="Motif (optionnel)" style="flex:2;">
+                                    <button class="btn send-coins-btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-paper-plane"></i> Envoyer
+                                    </button>
+                                </div>
+                                <div style="font-size:12px; color:var(--text-muted);">
+                                    Solde actuel : <strong class="wallet-balance-<%= u._id %>"><%= (u.walletBalance || 0).toLocaleString('fr-FR') %></strong> coins
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- === RESTRICTIONS === -->
+                        <div class="mod-panel" style="margin-top:8px;">
+                            <div class="mod-panel-header" onclick="togglePanel(this)">
+                                <i class="fa-solid fa-hand" style="color:var(--warning);"></i>
+                                Restrictions temporaires
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+                                    Choisir une durée et appliquer la restriction souhaitée.
+                                </div>
+
+                                <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+                                    <span style="font-size:13px; font-weight:600; color:var(--text-primary);">Durée :</span>
+                                    <select class="restrict-duration" style="padding:7px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; background:var(--background); color:var(--text-primary);">
+                                        <option value="30">30 minutes</option>
+                                        <option value="60" selected>1 heure</option>
+                                        <option value="180">3 heures</option>
+                                        <option value="360">6 heures</option>
+                                        <option value="720">12 heures</option>
+                                        <option value="1440">24 heures</option>
+                                        <option value="4320">3 jours</option>
+                                        <option value="10080">7 jours</option>
+                                    </select>
+                                </div>
+
+                                <div class="restriction-row">
+                                    <i class="fa-solid fa-comment-slash" style="color:var(--text-secondary); width:16px;"></i>
+                                    <span class="restriction-label">Messages privés</span>
+                                    <span class="restriction-status <%= isRestricted('messages') ? 'active' : 'none' %>">
+                                        <%= isRestricted('messages') ? minutesLeft('messages') + ' min restantes' : 'Libre' %>
+                                    </span>
+                                    <button class="btn restrict-btn" data-type="messages" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </button>
+                                    <button class="btn btn-secondary unrestrict-btn" data-type="messages" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock-open"></i>
+                                    </button>
+                                </div>
+
+                                <div class="restriction-row">
+                                    <i class="fa-solid fa-thumbs-up" style="color:var(--text-secondary); width:16px;"></i>
+                                    <span class="restriction-label">Likes</span>
+                                    <span class="restriction-status <%= isRestricted('likes') ? 'active' : 'none' %>">
+                                        <%= isRestricted('likes') ? minutesLeft('likes') + ' min restantes' : 'Libre' %>
+                                    </span>
+                                    <button class="btn restrict-btn" data-type="likes" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </button>
+                                    <button class="btn btn-secondary unrestrict-btn" data-type="likes" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock-open"></i>
+                                    </button>
+                                </div>
+
+                                <div class="restriction-row">
+                                    <i class="fa-solid fa-newspaper" style="color:var(--text-secondary); width:16px;"></i>
+                                    <span class="restriction-label">Publications</span>
+                                    <span class="restriction-status <%= isRestricted('posts') ? 'active' : 'none' %>">
+                                        <%= isRestricted('posts') ? minutesLeft('posts') + ' min restantes' : 'Libre' %>
+                                    </span>
+                                    <button class="btn restrict-btn" data-type="posts" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </button>
+                                    <button class="btn btn-secondary unrestrict-btn" data-type="posts" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock-open"></i>
+                                    </button>
+                                </div>
+
+                                <div class="restriction-row">
+                                    <i class="fa-solid fa-user-plus" style="color:var(--text-secondary); width:16px;"></i>
+                                    <span class="restriction-label">Invitations de groupe</span>
+                                    <span class="restriction-status <%= isRestricted('invitations') ? 'active' : 'none' %>">
+                                        <%= isRestricted('invitations') ? minutesLeft('invitations') + ' min restantes' : 'Libre' %>
+                                    </span>
+                                    <button class="btn restrict-btn" data-type="invitations" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </button>
+                                    <button class="btn btn-secondary unrestrict-btn" data-type="invitations" style="width:auto; padding:6px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-lock-open"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- === AVERTISSEMENTS === -->
+                        <div class="mod-panel" style="margin-top:8px;">
+                            <div class="mod-panel-header" onclick="togglePanel(this)">
+                                <i class="fa-solid fa-triangle-exclamation" style="color:var(--warning);"></i>
+                                Avertissements
+                                <span style="margin-left:4px; background:#fef3c7; color:var(--warning); font-size:11px; padding:1px 6px; border-radius:10px;">
+                                    <%= (u.warnings || []).length %>
+                                </span>
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <% if (u.warnings && u.warnings.length > 0) { %>
+                                    <% u.warnings.forEach(w => { %>
+                                        <div class="warning-item">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            <div>
+                                                <div style="font-weight:600; color:#78350f;"><%= w.motif %></div>
+                                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+                                                    <%= new Date(w.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }) %>
+                                <% } else { %>
+                                    <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Aucun avertissement pour cet utilisateur.</div>
+                                <% } %>
+
+                                <div style="margin-top:10px;">
+                                    <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">Envoyer un avertissement</div>
+                                    <div class="motif-options">
+                                        <span class="motif-pill warn-motif">Spam</span>
+                                        <span class="motif-pill warn-motif">Contenu inapproprié</span>
+                                        <span class="motif-pill warn-motif">Harcèlement</span>
+                                        <span class="motif-pill warn-motif">Faux compte</span>
+                                        <span class="motif-pill warn-motif">Discours haineux</span>
+                                    </div>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="text" class="warn-custom-input" placeholder="Motif personnalisé..."
+                                               style="flex:1; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; background:var(--background); color:var(--text-primary);">
+                                        <button class="btn warn-btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                            <i class="fa-solid fa-paper-plane"></i> Avertir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- === DÉSACTIVATION === -->
+                        <div class="mod-panel" style="margin-top:8px;">
+                            <div class="mod-panel-header" onclick="togglePanel(this)">
+                                <i class="fa-solid fa-lock" style="color:var(--warning);"></i>
+                                Désactivation du compte
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <% if (!u.isDisabled) { %>
+                                    <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+                                        Choisir un motif de désactivation. L'utilisateur le verra à sa prochaine connexion.
+                                    </div>
+                                    <div class="motif-options">
+                                        <span class="motif-pill disable-motif">Comportement inapproprié</span>
+                                        <span class="motif-pill disable-motif">Violation des CGU</span>
+                                        <span class="motif-pill disable-motif">Spam répété</span>
+                                        <span class="motif-pill disable-motif">Harcèlement</span>
+                                        <span class="motif-pill disable-motif danger">Contenu illégal</span>
+                                    </div>
+                                    <div style="display:flex; flex-direction:column; gap:8px;">
+                                        <input type="text" class="disable-reason-input" placeholder="Motif personnalisé (optionnel)..."
+                                               style="width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; background:var(--background); color:var(--text-primary);">
+                                        <input type="text" class="disable-contact-input" placeholder="Email de contact admin (optionnel)..."
+                                               style="width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; background:var(--background); color:var(--text-primary);">
+                                        <button class="btn disable-btn" style="width:auto; padding:8px 16px; font-size:13px; background:var(--warning);">
+                                            <i class="fa-solid fa-lock"></i> Désactiver le compte
+                                        </button>
+                                    </div>
+                                <% } else { %>
+                                    <div style="background:#fef3c7; border-radius:var(--radius-sm); padding:12px; margin-bottom:12px; font-size:13px; color:#78350f;">
+                                        <i class="fa-solid fa-lock"></i>
+                                        Compte désactivé
+                                        <% if (u.disableReason) { %> — <%= u.disableReason %><% } %>
+                                    </div>
+                                    <button class="btn enable-btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-lock-open"></i> Réactiver le compte
+                                    </button>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <!-- === SUPPRESSION === -->
+                        <div class="mod-panel" style="margin-top:8px; border-color:var(--error-light);">
+                            <div class="mod-panel-header" onclick="togglePanel(this)" style="color:var(--error);">
+                                <i class="fa-solid fa-skull-crossbones" style="color:var(--error);"></i>
+                                Suppression définitive
+                                <i class="fa-solid fa-chevron-down chevron"></i>
+                            </div>
+                            <div class="mod-panel-body">
+                                <div style="background:#fee2e2; border-radius:var(--radius-sm); padding:12px; margin-bottom:12px; font-size:13px; color:#7f1d1d;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    Cette action est irréversible. Toutes les données seront effacées.
+                                </div>
+                                <div class="motif-options">
+                                    <span class="motif-pill delete-motif danger">Images à caractère sexuel</span>
+                                    <span class="motif-pill delete-motif danger">Contenu pédopornographique</span>
+                                    <span class="motif-pill delete-motif danger">Violence extrême</span>
+                                    <span class="motif-pill delete-motif danger">Terrorisme</span>
+                                    <span class="motif-pill delete-motif danger">Usurpation d'identité</span>
+                                    <span class="motif-pill delete-motif danger">Fraude</span>
+                                </div>
+                                <div style="display:flex; gap:8px; margin-top:8px;">
+                                    <input type="text" class="delete-reason-input" placeholder="Motif personnalisé..."
+                                           style="flex:1; padding:8px 12px; border:1.5px solid var(--error-light); border-radius:var(--radius-sm); font-size:13px; background:var(--background); color:var(--text-primary);">
+                                    <button class="btn btn-danger delete-user-btn" style="width:auto; padding:8px 16px; font-size:13px;">
+                                        <i class="fa-solid fa-trash"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <% } %>
+                </div>
+            <% }) %>
+
+        </main>
+    </div>
+
+    <script>
+        // ============================================================
+        // UTILITAIRES
+        // ============================================================
+        function showToast(message, isError = false) {
+            const toast = isError ? document.getElementById("errorToast") : document.getElementById("toast")
+            const text = isError ? document.getElementById("errorToastText") : document.getElementById("toastText")
+            text.innerText = message
+            toast.style.display = "flex"
+            setTimeout(() => { toast.style.display = "none" }, 3500)
+        }
+
+        const badgeLabels = { verifie: 'Vérifié', moderateur: 'Modérateur', fondateur: 'Fondateur', premium: 'Premium', staff: 'Staff' }
+        const badgeIcons = { verifie: 'fa-check', moderateur: 'fa-shield', fondateur: 'fa-star', premium: 'fa-crown', staff: 'fa-screwdriver-wrench' }
+
+        // ============================================================
+        // TOGGLE PANNEAU ACTIONS
+        // ============================================================
+        document.querySelectorAll(".toggle-actions-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const userId = btn.getAttribute("data-user-id")
+                const panel = document.querySelector(`.actions-panel-${userId}`)
+                const isOpen = panel.style.display !== "none"
+                panel.style.display = isOpen ? "none" : "block"
+                btn.innerHTML = isOpen
+                    ? '<i class="fa-solid fa-ellipsis-vertical"></i> Actions'
+                    : '<i class="fa-solid fa-xmark"></i> Fermer'
+            })
+        })
+
+        // ============================================================
+        // TOGGLE SOUS-PANELS
+        // ============================================================
+        function togglePanel(header) {
+            header.classList.toggle("open")
+            const body = header.nextElementSibling
+            body.classList.toggle("open")
+        }
+
+        // ============================================================
+        // MOTIFS PILLS (sélection)
+        // ============================================================
+        document.addEventListener("click", (e) => {
+            const pill = e.target.closest(".motif-pill")
+            if (!pill) return
+
+            const group = pill.classList.contains("warn-motif") ? "warn-motif"
+                : pill.classList.contains("disable-motif") ? "disable-motif"
+                : pill.classList.contains("delete-motif") ? "delete-motif" : null
+
+            if (!group) return
+
+            const container = pill.closest(".mod-panel-body")
+            container.querySelectorAll(`.${group}`).forEach(p => p.classList.remove("selected"))
+            pill.classList.add("selected")
+
+            // Remplir le champ input correspondant
+            if (group === "warn-motif") {
+                const input = container.querySelector(".warn-custom-input")
+                if (input) input.value = pill.innerText
+            } else if (group === "disable-motif") {
+                const input = container.querySelector(".disable-reason-input")
+                if (input) input.value = pill.innerText
+            } else if (group === "delete-motif") {
+                const input = container.querySelector(".delete-reason-input")
+                if (input) input.value = pill.innerText
+            }
+        })
+
+        // ============================================================
+        // TOGGLE RÔLE
+        // ============================================================
+        document.querySelectorAll(".toggle-role-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/toggle-role`, { method: "POST" })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const tag = card.querySelector(`.role-tag-${userId}`)
+                        if (data.role === "admin") {
+                            tag.textContent = "Admin"
+                            tag.className = `tag role-tag-${userId} tag-admin`
+                            btn.innerHTML = '<i class="fa-solid fa-user-shield"></i> Retirer admin'
+                        } else {
+                            tag.textContent = "Utilisateur"
+                            tag.className = `tag role-tag-${userId} tag-user`
+                            btn.innerHTML = '<i class="fa-solid fa-user-shield"></i> Rendre admin'
+                        }
+                        showToast("Rôle mis à jour !")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // ENVOI DE COINS
+        // ============================================================
+        document.querySelectorAll(".send-coins-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+                const amount = card.querySelector(".coins-amount").value
+                const reason = card.querySelector(".coins-reason").value
+
+                if (!amount || parseInt(amount) <= 0) {
+                    showToast("Montant invalide.", true)
+                    return
+                }
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/send-coins`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ amount, reason })
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        card.querySelectorAll(`.wallet-balance-${userId}`).forEach(el => {
+                            el.innerText = data.newBalance.toLocaleString("fr-FR")
+                        })
+                        card.querySelector(".coins-amount").value = ""
+                        card.querySelector(".coins-reason").value = ""
+                        showToast(`${amount} coins envoyés !`)
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // RESTRICTIONS
+        // ============================================================
+        document.querySelectorAll(".restrict-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+                const type = btn.getAttribute("data-type")
+                const duree = card.querySelector(".restrict-duration").value
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/restrict`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ type, duree })
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const statusEl = btn.closest(".restriction-row").querySelector(".restriction-status")
+                        const minutes = parseInt(duree)
+                        statusEl.textContent = minutes + " min restantes"
+                        statusEl.className = "restriction-status active"
+                        showToast(`Restriction "${type}" appliquée pour ${minutes} min.`)
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        document.querySelectorAll(".unrestrict-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+                const type = btn.getAttribute("data-type")
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/unrestrict/${type}`, { method: "POST" })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const statusEl = btn.closest(".restriction-row").querySelector(".restriction-status")
+                        statusEl.textContent = "Libre"
+                        statusEl.className = "restriction-status none"
+                        showToast(`Restriction "${type}" levée.`)
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // AVERTISSEMENTS
+        // ============================================================
+        document.querySelectorAll(".warn-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+                const motif = card.querySelector(".warn-custom-input").value.trim()
+
+                if (!motif) {
+                    showToast("Sélectionne ou saisis un motif.", true)
+                    return
+                }
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/warn`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ motif })
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        card.querySelector(".warn-custom-input").value = ""
+                        showToast(`Avertissement envoyé (${data.total} au total).`)
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // DÉSACTIVATION
+        // ============================================================
+        document.querySelectorAll(".disable-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                if (!confirm("Désactiver ce compte ?")) return
+
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+                const reason = card.querySelector(".disable-reason-input")?.value.trim() || ""
+                const contact = card.querySelector(".disable-contact-input")?.value.trim() || ""
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/disable`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ reason, contact })
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const tag = card.querySelector(`.status-tag-${userId}`)
+                        tag.textContent = "Désactivé"
+                        tag.className = `tag status-tag-${userId} tag-disabled`
+                        showToast("Compte désactivé.")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // RÉACTIVATION
+        // ============================================================
+        document.querySelectorAll(".enable-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/enable`, { method: "POST" })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const tag = card.querySelector(`.status-tag-${userId}`)
+                        tag.textContent = "Actif"
+                        tag.className = `tag status-tag-${userId} tag-active`
+                        showToast("Compte réactivé !")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // SUPPRESSION
+        // ============================================================
+        document.querySelectorAll(".delete-user-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const reason = card.querySelector(".delete-reason-input").value.trim()
+
+                if (!reason) {
+                    showToast("Le motif de suppression est obligatoire.", true)
+                    return
+                }
+
+                if (!confirm(`Supprimer définitivement ce compte ?\nMotif : ${reason}\n\nCette action est irréversible.`)) return
+
+                const userId = card.getAttribute("data-user-id")
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/delete`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ reason })
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        card.style.opacity = "0"
+                        card.style.transform = "scale(0.95)"
+                        card.style.transition = "all 0.3s ease"
+                        setTimeout(() => card.remove(), 300)
+                        showToast("Compte supprimé.")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // BADGES — AJOUTER
+        // ============================================================
+        document.querySelectorAll(".add-badge-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const card = btn.closest("[data-user-id]")
+                const userId = card.getAttribute("data-user-id")
+                const type = btn.getAttribute("data-type")
+
+                try {
+                    const res = await fetch(`/admin/users/${userId}/badges/add`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ type })
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const list = card.querySelector(`.badges-list-${userId}`)
+                        const span = document.createElement("span")
+                        span.className = `badge-admin-item badge-${type}`
+                        span.innerHTML = `
+                            <span class="user-badge badge-${type}" style="margin-left:0;">
+                                <i class="fa-solid ${badgeIcons[type]}"></i>
+                            </span>
+                            ${badgeLabels[type]}
+                            <i class="fa-solid fa-xmark badge-remove" data-type="${type}"></i>
+                        `
+                        list.appendChild(span)
+                        showToast(`Badge "${badgeLabels[type]}" ajouté !`)
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // ============================================================
+        // BADGES — RETIRER
+        // ============================================================
+        document.addEventListener("click", async (e) => {
+            const removeBtn = e.target.closest(".badge-remove")
+            if (!removeBtn) return
+
+            const card = removeBtn.closest("[data-user-id]")
+            const userId = card.getAttribute("data-user-id")
+            const type = removeBtn.getAttribute("data-type")
+
+            try {
+                const res = await fetch(`/admin/users/${userId}/badges/remove/${type}`, { method: "POST" })
+                const data = await res.json()
+
+                if (data.success) {
+                    removeBtn.closest(".badge-admin-item").remove()
+                    showToast("Badge retiré.")
+                } else {
+                    showToast(data.error || "Erreur", true)
+                }
+            } catch (e) {
+                showToast("Erreur de connexion", true)
+            }
+        })
+    </script>
+</body>
+</html>

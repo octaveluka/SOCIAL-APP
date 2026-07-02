@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/navbar', { currentPage: 'bounties' }) %>
+<div class="main-container">
+    <%- include('partials/sidebar', { currentPage: 'bounties' }) %>
+    <div class="content-area">
+        <div class="bounties-page">
+            <div class="bounties-header">
+                <h2><i class="fa-solid fa-coins"></i> Primes</h2>
+                <div class="bounties-balance">
+                    Solde :
+                    <% if (user.role === 'admin') { %>
+                        <strong>∞ Illimité</strong>
+                    <% } else { %>
+                        <strong><%= user.walletBalance %></strong> crédits
+                    <% } %>
+                </div>
+                <button id="createBountyBtn" class="btn-create-bounty">+ Créer une prime</button>
+            </div>
+
+            <!-- Formulaire de création -->
+            <div class="create-bounty-form" id="createBountyForm" style="display:none;">
+                <h3><i class="fa-solid fa-coins"></i> Nouvelle prime</h3>
+                <div class="form-group">
+                    <label>Action requise</label>
+                    <select id="bountyAction" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text-primary);">
+                        <option value="">-- Choisir une action --</option>
+                        <% actionTypes.forEach(a => { %>
+                            <option value="<%= a.id %>"><%= a.label %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div id="actionDesc" style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-secondary);margin-bottom:12px;display:none;"></div>
+                <div class="form-group">
+                    <label>Récompense (crédits)</label>
+                    <input type="number" id="bountyReward" min="1" <% if (user.role !== 'admin') { %>max="<%= user.walletBalance %>"<% } %> placeholder="Ex: 50">
+                </div>
+                <div style="display:flex; gap:12px; margin-top:16px;">
+                    <button id="submitBounty" class="btn-primary-action">Créer la prime</button>
+                    <button id="cancelBounty" class="btn-secondary-action">Annuler</button>
+                </div>
+            </div>
+
+            <div class="bounties-list">
+                <% if (bounties.length === 0) { %>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-coins" style="font-size:48px; margin-bottom:16px; display:block; text-align:center;"></i>
+                        <p>Aucune prime disponible pour le moment.</p>
+                        <p style="color:var(--text-secondary);">Sois le premier à en créer une !</p>
+                    </div>
+                <% } else { %>
+                    <% bounties.forEach(b => { %>
+                    <div class="bounty-card status-<%= b.status %>">
+                        <div class="bounty-card-header">
+                            <div class="bounty-status-badge status-<%= b.status %>">
+                                <%- b.status === 'open' ? '<i class="fa-solid fa-circle" style="color:#22c55e;"></i> Ouverte' : b.status === 'claimed' ? '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Attribuée' : '<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> Fermée' %>
+                            </div>
+                            <div class="bounty-reward"><i class="fa-solid fa-coins"></i> <%= b.rewardAmount %> crédits</div>
+                        </div>
+                        <h3 class="bounty-title"><%= b.title %></h3>
+                        <p class="bounty-desc"><%= b.description %></p>
+                        <div class="bounty-footer">
+                            <div class="bounty-author">
+                                <img src="<%= b.createdBy.photoProfil %>" alt="">
+                                <span><%= b.createdBy.nom %></span>
+                            </div>
+                            <div class="bounty-applicants"><%= b.applicants.length %> candidat(s)</div>
+                        </div>
+                        <div class="bounty-actions">
+                            <% const isOwn = b.createdBy._id.toString() === user._id.toString() %>
+                            <% const alreadyApplied = b.applicants.some(a => a.user && a.user._id && a.user._id.toString() === user._id.toString()) %>
+
+                            <% if (b.status === 'open' && !isOwn && !alreadyApplied) { %>
+                                <button class="btn-accomplish"
+                                    data-id="<%= b._id %>"
+                                    data-action="<%= b.actionType %>">
+                                    <i class="fa-solid fa-bolt"></i> Accomplir
+                                </button>
+                            <% } else if (alreadyApplied) { %>
+                                <span class="badge-applied"><i class="fa-solid fa-circle-check"></i> Accompli</span>
+                            <% } %>
+
+                            <% if (isOwn && b.status === 'open') { %>
+                                <button class="btn-view-applicants"
+                                    data-id="<%= b._id %>">
+                                    <i class="fa-solid fa-eye"></i> Voir candidats (<%= b.applicants.length %>)
+                                </button>
+                            <% } %>
+
+                            <% if (b.status === 'claimed' && b.claimedBy) { %>
+                                <span style="font-size:12px;color:#10b981;"><i class="fa-solid fa-trophy"></i> Attribuée</span>
+                            <% } %>
+                        </div>
+                    </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal : accomplir une prime -->
+<div id="accomplishModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-bolt"></i> Accomplir la prime</h3>
+        <p id="accomplishDesc" style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;"></p>
+        <div style="display:flex; gap:12px; margin-top:8px;">
+            <button id="confirmAccomplish" class="btn-primary-action">Vérifier &amp; Réclamer</button>
+            <button id="cancelAccomplish" class="btn-secondary-action">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal : voir les candidats -->
+<div id="applicantsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:480px;">
+        <h3><i class="fa-solid fa-users"></i> Candidats</h3>
+        <div id="applicantsList" style="margin-top:12px;"></div>
+        <button id="closeApplicants" class="btn-secondary-action" style="margin-top:16px;width:100%;">Fermer</button>
+    </div>
+</div>
+
+<script>
+const actionDescs = <%- JSON.stringify(actionTypes.reduce((acc, a) => { acc[a.id] = a.desc; return acc; }, {})) %>
+let currentBountyId = null
+
+document.getElementById("createBountyBtn").addEventListener("click", () => {
+    document.getElementById("createBountyForm").style.display = "block"
+    document.getElementById("createBountyBtn").style.display = "none"
+})
+document.getElementById("cancelBounty").addEventListener("click", () => {
+    document.getElementById("createBountyForm").style.display = "none"
+    document.getElementById("createBountyBtn").style.display = "block"
+})
+document.getElementById("bountyAction").addEventListener("change", function() {
+    const desc = actionDescs[this.value]
+    const el = document.getElementById("actionDesc")
+    if (desc) { el.innerHTML = '<i class="fa-solid fa-circle-info"></i> ' + desc; el.style.display = "block"; }
+    else { el.style.display = "none"; }
+})
+document.getElementById("submitBounty").addEventListener("click", async () => {
+    const actionType = document.getElementById("bountyAction").value
+    const rewardAmount = parseInt(document.getElementById("bountyReward").value)
+    if (!actionType) return alert("Choisis une action.")
+    if (!rewardAmount || rewardAmount < 1) return alert("Montant invalide.")
+    const btn = document.getElementById("submitBounty")
+    btn.disabled = true; btn.textContent = "Création…"
+    const res = await fetch("/api/bounties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actionType, rewardAmount })
+    })
+    const data = await res.json()
+    btn.disabled = false; btn.textContent = "Créer la prime"
+    if (data.success) { location.reload() } else { alert(data.error) }
+})
+
+// Accomplir
+document.querySelectorAll(".btn-accomplish").forEach(btn => {
+    btn.addEventListener("click", () => {
+        currentBountyId = btn.dataset.id
+        const actionId = btn.dataset.action
+        document.getElementById("accomplishDesc").textContent = actionDescs[actionId] || "Accomplis cette action pour recevoir la récompense."
+        document.getElementById("accomplishModal").style.display = "flex"
+    })
+})
+document.getElementById("cancelAccomplish").addEventListener("click", () => {
+    document.getElementById("accomplishModal").style.display = "none"
+})
+document.getElementById("confirmAccomplish").addEventListener("click", async () => {
+    const btn = document.getElementById("confirmAccomplish")
+    btn.disabled = true; btn.textContent = "Vérification…"
+    const res = await fetch(`/api/bounties/${currentBountyId}/accomplish`, { method: "POST" })
+    const data = await res.json()
+    btn.disabled = false; btn.textContent = "Vérifier & Réclamer"
+    document.getElementById("accomplishModal").style.display = "none"
+    if (data.ok) {
+        alert(`✅ Félicitations ! Tu as gagné ${data.reward} crédits !`)
+        location.reload()
+    } else {
+        alert(`❌ ${data.reason}`)
+    }
+})
+
+// Voir candidats
+document.querySelectorAll(".btn-view-applicants").forEach(btn => {
+    btn.addEventListener("click", async () => {
+        const bountyId = btn.dataset.id
+        const res = await fetch(`/api/bounties/${bountyId}/applicants`)
+        const data = await res.json()
+        if (!data.success) return alert(data.error || "Erreur")
+        const list = document.getElementById("applicantsList")
+        if (!data.applicants.length) {
+            list.innerHTML = '<p style="color:var(--text-secondary);">Aucun candidat pour le moment.</p>'
+        } else {
+            list.innerHTML = data.applicants.map(a => `
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <img src="${a.user?.photoProfil || ''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" alt="">
+                        <div>
+                            <div style="font-weight:600;font-size:14px;">${a.user?.nom || '?'}</div>
+                            <div style="font-size:11px;color:var(--text-secondary);">${a.verified ? '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Vérifié automatiquement' : a.message || 'Candidature manuelle'}</div>
+                        </div>
+                    </div>
+                    <button onclick="awardBounty('${bountyId}','${a.user?._id}')" class="btn-primary-action" style="padding:6px 14px;font-size:12px;">Attribuer</button>
+                </div>`).join("")
+        }
+        document.getElementById("applicantsModal").style.display = "flex"
+    })
+})
+document.getElementById("closeApplicants").addEventListener("click", () => {
+    document.getElementById("applicantsModal").style.display = "none"
+})
+async function awardBounty(bountyId, userId) {
+    if (!confirm("Attribuer cette prime à cet utilisateur ?")) return
+    const res = await fetch(`/api/bounties/${bountyId}/award/${userId}`, { method: "POST" })
+    const data = await res.json()
+    if (data.success) { alert(`✅ Prime attribuée à ${data.winner} !`); location.reload() }
+    else { alert(data.error) }
+}
+</script>
+</body>
+</html>

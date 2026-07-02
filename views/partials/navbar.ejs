@@ -1,0 +1,147 @@
+<nav class="navbar">
+    <!-- Logo -->
+    <a href="/" class="navbar-logo ajax-link">
+        <i class="fa-solid fa-circle-nodes"></i>
+        SocialApp
+    </a>
+
+    <!-- Liens centraux -->
+    <div class="navbar-center">
+        <a href="/" class="<%= currentPage === 'feed' ? 'active' : '' %> ajax-link" title="Accueil">
+            <i class="fa-solid fa-house"></i>
+        </a>
+        <a href="/search" class="<%= currentPage === 'search' ? 'active' : '' %> ajax-link" title="Rechercher">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </a>
+        <a href="/friends" class="<%= currentPage === 'friends' ? 'active' : '' %> ajax-link" title="Amis" style="position:relative;">
+            <i class="fa-solid fa-user-group"></i>
+            <span class="badge" id="demandesBadge"><%= demandesCount > 0 ? demandesCount : '' %></span>
+        </a>
+        <a href="/messages" class="<%= currentPage === 'messages' ? 'active' : '' %> ajax-link" title="Messages" style="position:relative;">
+            <i class="fa-solid fa-comment-dots"></i>
+            <span class="badge" id="messagesBadge"><%= messagesCount > 0 ? messagesCount : '' %></span>
+        </a>
+        <a href="/notifications" class="<%= currentPage === 'notifications' ? 'active' : '' %> ajax-link" title="Notifications" style="position:relative;">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge" id="notifBadge"><%= notifCount > 0 ? notifCount : '' %></span>
+        </a>
+        <% if (user.role === 'admin') { %>
+            <a href="/admin" class="<%= currentPage === 'admin' ? 'active' : '' %> ajax-link" title="Dashboard Admin">
+                <i class="fa-solid fa-gauge-high"></i>
+            </a>
+        <% } %>
+    </div>
+
+    <!-- Dropdown profil + Boutons mode sombre et notifications -->
+    <div class="navbar-right">
+        <!-- Bouton mode sombre -->
+        <a href="#" id="themeToggle" title="Mode sombre" style="margin-right: 12px; color: var(--text-secondary); font-size: 18px;">
+            <i class="fa-solid fa-moon"></i>
+        </a>
+
+        <!-- Bouton notifications (activé par défaut) -->
+        <a href="#" id="toggleNotificationsBtn" title="Notifications sonores" style="margin-right: 12px; color: var(--text-secondary); font-size: 18px;">
+            <i class="fa-solid fa-bell" style="color: #3b82f6;"></i>
+        </a>
+
+        <div class="navbar-dropdown">
+            <a class="navbar-avatar-btn">
+                <img src="<%= user.photoProfil %>" alt="" class="navbar-avatar">
+                <span class="navbar-username navbar-hide-mobile"><%= user.nom.split(' ')[0] %></span>
+                <i class="fa-solid fa-chevron-down" style="font-size:11px; color:var(--text-muted);" class="navbar-hide-mobile"></i>
+            </a>
+            <div class="navbar-dropdown-menu">
+                <div class="navbar-dropdown-header">
+                    <div class="navbar-dropdown-name"><%= user.nom %></div>
+                    <div class="navbar-dropdown-email"><%= user.email %></div>
+                </div>
+                <a href="/profile/<%= user.id %>" class="navbar-dropdown-item ajax-link">
+                    <i class="fa-solid fa-user"></i> Mon profil
+                </a>
+                <a href="/profile/edit/me" class="navbar-dropdown-item ajax-link">
+                    <i class="fa-solid fa-pen"></i> Modifier le profil
+                </a>
+                <a href="/settings/password" class="navbar-dropdown-item ajax-link">
+                    <i class="fa-solid fa-lock"></i> Modifier le mot de passe
+                </a>
+                <a href="/settings/security-question" class="navbar-dropdown-item ajax-link">
+                    <i class="fa-solid fa-shield-halved"></i> Question de sécurité
+                </a>
+                <a href="/settings/sub-profiles" class="navbar-dropdown-item ajax-link">
+                    <i class="fa-solid fa-mask"></i> Profils anonymes
+                </a>
+                <% if (user.role === 'admin') { %>
+                    <div class="navbar-dropdown-divider"></div>
+                    <a href="/admin" class="navbar-dropdown-item ajax-link">
+                        <i class="fa-solid fa-gauge-high"></i> Dashboard Admin
+                    </a>
+                <% } %>
+                <div class="navbar-dropdown-divider"></div>
+                <a href="/logout" class="navbar-dropdown-item danger">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Barre de navigation mobile (bas d'écran) -->
+<nav class="mobile-navbar">
+    <a href="/" class="<%= currentPage === 'feed' ? 'active' : '' %> ajax-link">
+        <i class="fa-solid fa-house"></i>
+    </a>
+    <a href="/search" class="<%= currentPage === 'search' ? 'active' : '' %> ajax-link">
+        <i class="fa-solid fa-magnifying-glass"></i>
+    </a>
+    <a href="/friends" class="<%= currentPage === 'friends' ? 'active' : '' %> ajax-link" style="position:relative;">
+        <i class="fa-solid fa-user-group"></i>
+        <span class="badge" id="demandesBadgeMobile"><%= demandesCount > 0 ? demandesCount : '' %></span>
+    </a>
+    <a href="/messages" class="<%= currentPage === 'messages' ? 'active' : '' %> ajax-link" style="position:relative;">
+        <i class="fa-solid fa-comment-dots"></i>
+        <span class="badge" id="messagesBadgeMobile"><%= messagesCount > 0 ? messagesCount : '' %></span>
+    </a>
+    <a href="/notifications" class="<%= currentPage === 'notifications' ? 'active' : '' %> ajax-link" style="position:relative;">
+        <i class="fa-solid fa-bell"></i>
+        <span class="badge" id="notifBadgeMobile"><%= notifCount > 0 ? notifCount : '' %></span>
+    </a>
+    <a href="/profile/<%= user.id %>" class="<%= currentPage === 'profile' ? 'active' : '' %> ajax-link">
+        <img src="<%= user.photoProfil %>" alt="" class="navbar-avatar-mobile">
+    </a>
+<!-- Bannière installation PWA -->
+<div id="pwa-install-banner" style="
+    display:none;
+    position:fixed;
+    bottom:80px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px 20px;
+    box-shadow:var(--shadow-lg);
+    z-index:500;
+    align-items:center;
+    gap:14px;
+    max-width:340px;
+    width:calc(100% - 32px);
+">
+    <div style="width:40px; height:40px; background:var(--primary-light); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <i class="fa-solid fa-circle-nodes" style="color:var(--primary); font-size:18px;"></i>
+    </div>
+    <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-primary);">Installer SocialApp</div>
+        <div style="font-size:12px; color:var(--text-secondary);">Accès rapide depuis ton écran d'accueil</div>
+    </div>
+    <div style="display:flex; gap:8px; flex-shrink:0;">
+        <button onclick="installPWA()" style="padding:8px 14px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+            Installer
+        </button>
+        <button onclick="document.getElementById('pwa-install-banner').style.display='none'" style="padding:8px; background:none; border:none; cursor:pointer; color:var(--text-muted);">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+</div>
+
+<script src="/js/pwa.js"></script>
+</nav>

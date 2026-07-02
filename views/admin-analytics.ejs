@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .analytics-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        .analytics-card .value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .analytics-card .label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .analytics-card .label i {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .rankings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .rank-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .rank-icon {
+            font-size: 28px;
+            color: var(--primary);
+            width: 40px;
+            text-align: center;
+        }
+        .rank-info {
+            flex: 1;
+        }
+        .rank-info .name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .rank-info .detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            margin-top: 24px;
+        }
+        .section-title i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+        .oracle-admin-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .oracle-admin-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+        .oracle-admin-brand i { font-size: 24px; }
+        .oracle-admin-brand .title { font-size: 17px; font-weight: 800; }
+        .oracle-admin-brand .sub { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+        .oracle-kpi-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .oracle-kpi {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 10px 18px;
+            text-align: center;
+            color: #fff;
+            min-width: 90px;
+        }
+        .oracle-kpi .kv { font-size: 24px; font-weight: 800; }
+        .oracle-kpi .kl { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+        .oracle-rate-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .oracle-rate-label { font-size: 13px; color: var(--text-secondary); width: 130px; flex-shrink: 0; }
+        .oracle-rate-bar { flex: 1; height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; }
+        .oracle-rate-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #4f46e5, #7c3aed); }
+        .oracle-rate-pct { font-size: 13px; font-weight: 700; color: var(--primary); width: 38px; text-align: right; flex-shrink: 0; }
+        .oracle-type-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .oracle-type-row:last-child { border-bottom: none; }
+        .oracle-type-name { font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .oracle-type-name i { color: var(--primary); width: 16px; }
+        .oracle-type-stats { color: var(--text-secondary); }
+        .oracle-claimer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .oracle-claimer-row:last-child { border-bottom: none; }
+        .oracle-claimer-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+        .oracle-claimer-name { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; }
+        .oracle-claimer-badge {
+            font-size: 11px; font-weight: 700;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #fff; padding: 3px 10px; border-radius: 20px;
+        }
+        .oracle-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 640px) { .oracle-two-col { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'admin' }) %>
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'admin' }) %>
+        <div class="content-area">
+            <h1 style="font-size:22px; font-weight:800; margin-bottom:24px;">
+                <i class="fa-solid fa-chart-simple" style="color:var(--primary);"></i> Oracle — Analytics
+            </h1>
+
+            <!-- Aujourd'hui -->
+            <div class="section-title"><i class="fa-solid fa-sun"></i> Aujourd'hui</div>
+            <div class="analytics-grid">
+                <div class="analytics-card"><div class="value"><%= today.activeUsers %></div><div class="label"><i class="fa-solid fa-user"></i> Actifs</div></div>
+                <div class="analytics-card"><div class="value"><%= today.messages %></div><div class="label"><i class="fa-solid fa-message"></i> Messages</div></div>
+                <div class="analytics-card"><div class="value"><%= today.posts %></div><div class="label"><i class="fa-solid fa-file-lines"></i> Posts</div></div>
+                <div class="analytics-card"><div class="value"><%= today.comments %></div><div class="label"><i class="fa-solid fa-comment"></i> Commentaires</div></div>
+                <div class="analytics-card"><div class="value"><%= today.aiUsage %></div><div class="label"><i class="fa-solid fa-robot"></i> IA</div></div>
+                <div class="analytics-card"><div class="value"><%= today.stories %></div><div class="label"><i class="fa-solid fa-image"></i> Stories</div></div>
+                <div class="analytics-card"><div class="value"><%= today.newUsers %></div><div class="label"><i class="fa-solid fa-user-plus"></i> Nouveaux</div></div>
+                <div class="analytics-card"><div class="value"><%= today.likes %></div><div class="label"><i class="fa-solid fa-heart"></i> Likes</div></div>
+            </div>
+
+            <!-- Cette semaine -->
+            <div class="section-title"><i class="fa-solid fa-calendar-week"></i> Cette semaine</div>
+            <div class="analytics-grid">
+                <div class="analytics-card"><div class="value"><%= week.activeUsers %></div><div class="label"><i class="fa-solid fa-user"></i> Actifs</div></div>
+                <div class="analytics-card"><div class="value"><%= week.messages %></div><div class="label"><i class="fa-solid fa-message"></i> Messages</div></div>
+                <div class="analytics-card"><div class="value"><%= week.posts %></div><div class="label"><i class="fa-solid fa-file-lines"></i> Posts</div></div>
+                <div class="analytics-card"><div class="value"><%= week.aiUsage %></div><div class="label"><i class="fa-solid fa-robot"></i> IA</div></div>
+                <div class="analytics-card"><div class="value"><%= week.newUsers %></div><div class="label"><i class="fa-solid fa-user-plus"></i> Nouveaux</div></div>
+                <div class="analytics-card"><div class="value"><%= week.comments %></div><div class="label"><i class="fa-solid fa-comment"></i> Commentaires</div></div>
+                <div class="analytics-card"><div class="value"><%= week.likes %></div><div class="label"><i class="fa-solid fa-heart"></i> Likes</div></div>
+                <div class="analytics-card"><div class="value"><%= week.stories %></div><div class="label"><i class="fa-solid fa-image"></i> Stories</div></div>
+            </div>
+
+            <!-- Classements -->
+            <div class="section-title"><i class="fa-solid fa-trophy"></i> Classements (7 jours)</div>
+            <div class="rankings-grid">
+                <div class="rank-card">
+                    <div class="rank-icon"><i class="fa-solid fa-crown"></i></div>
+                    <div class="rank-info">
+                        <div class="name"><%= rankings.mostActiveUser.nom || 'Aucun' %></div>
+                        <div class="detail"><%= rankings.mostActiveUser.count || 0 %> actions</div>
+                    </div>
+                </div>
+                <div class="rank-card">
+                    <div class="rank-icon"><i class="fa-solid fa-fire"></i></div>
+                    <div class="rank-info">
+                        <div class="name"><%= rankings.mostActiveGroup.nom || 'Aucun' %></div>
+                        <div class="detail"><%= rankings.mostActiveGroup.msgCount || 0 %> messages</div>
+                    </div>
+                </div>
+                <div class="rank-card">
+                    <div class="rank-icon"><i class="fa-solid fa-robot"></i></div>
+                    <div class="rank-info">
+                        <div class="name"><%= rankings.topAiUser.nom || 'Aucun' %></div>
+                        <div class="detail"><%= rankings.topAiUser.count || 0 %> utilisations IA</div>
+                    </div>
+                </div>
+                <div class="rank-card">
+                    <div class="rank-icon"><i class="fa-solid fa-coins"></i></div>
+                    <div class="rank-info">
+                        <div class="name"><%= rankings.topCoinsUser.nom || 'Aucun' %></div>
+                        <div class="detail"><%= rankings.topCoinsUser.walletBalance || 0 %> coins</div>
+                    </div>
+                </div>
+                <div class="rank-card">
+                    <div class="rank-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+                    <div class="rank-info">
+                        <div class="name"><%= rankings.topPoster.nom || 'Aucun' %></div>
+                        <div class="detail"><%= rankings.topPoster.count || 0 %> posts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ORACLE V2 — QUÊTES PERSONNALISÉES ===== -->
+            <div style="margin-top: 32px;">
+                <div class="oracle-admin-header">
+                    <div class="oracle-admin-brand">
+                        <i class="fa-solid fa-brain"></i>
+                        <div>
+                            <div class="title">Oracle V2 — Quêtes Personnalisées</div>
+                            <div class="sub">Statistiques des missions du jour · <%= new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) %></div>
+                        </div>
+                    </div>
+                    <div class="oracle-kpi-row">
+                        <div class="oracle-kpi">
+                            <div class="kv"><%= oracleStats.total %></div>
+                            <div class="kl">Générées</div>
+                        </div>
+                        <div class="oracle-kpi">
+                            <div class="kv"><%= oracleStats.completed %></div>
+                            <div class="kl">Terminées</div>
+                        </div>
+                        <div class="oracle-kpi">
+                            <div class="kv"><%= oracleStats.claimed %></div>
+                            <div class="kl">Réclamées</div>
+                        </div>
+                        <div class="oracle-kpi">
+                            <div class="kv"><%= oracleStats.completionRate %>%</div>
+                            <div class="kl">Taux</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="oracle-two-col">
+                    <!-- Taux de performance -->
+                    <div class="analytics-card" style="text-align:left; padding: 20px;">
+                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:16px;">
+                            <i class="fa-solid fa-chart-line" style="color:var(--primary); margin-right:6px;"></i> Performance
+                        </div>
+                        <div class="oracle-rate-bar-wrap">
+                            <span class="oracle-rate-label">Taux de complétion</span>
+                            <div class="oracle-rate-bar"><div class="oracle-rate-fill" style="width:<%= oracleStats.completionRate %>%;"></div></div>
+                            <span class="oracle-rate-pct"><%= oracleStats.completionRate %>%</span>
+                        </div>
+                        <div class="oracle-rate-bar-wrap">
+                            <span class="oracle-rate-label">Taux de réclamation</span>
+                            <div class="oracle-rate-bar"><div class="oracle-rate-fill" style="width:<%= oracleStats.claimRate %>%;"></div></div>
+                            <span class="oracle-rate-pct"><%= oracleStats.claimRate %>%</span>
+                        </div>
+
+                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin:20px 0 12px;">
+                            <i class="fa-solid fa-list-check" style="color:var(--primary); margin-right:6px;"></i> Types de quêtes
+                        </div>
+                        <% const typeIcons = { post: 'fa-file-lines', message: 'fa-comment-dots', story: 'fa-circle-half-stroke', like: 'fa-heart', ai: 'fa-robot' } %>
+                        <% const typeLabels = { post: 'Publication', message: 'Messages', story: 'Story', like: 'Likes', ai: 'IA' } %>
+                        <% if (oracleStats.topTypes.length === 0) { %>
+                            <div style="color:var(--text-muted); font-size:13px;">Aucune quête générée aujourd'hui.</div>
+                        <% } %>
+                        <% oracleStats.topTypes.forEach(type => { %>
+                            <div class="oracle-type-row">
+                                <span class="oracle-type-name">
+                                    <i class="fa-solid <%= typeIcons[type._id] || 'fa-star' %>"></i>
+                                    <%= typeLabels[type._id] || type._id %>
+                                </span>
+                                <span class="oracle-type-stats"><%= type.completed %>/<%= type.count %> complétées</span>
+                            </div>
+                        <% }) %>
+                    </div>
+
+                    <!-- Derniers à avoir réclamé -->
+                    <div class="analytics-card" style="text-align:left; padding: 20px;">
+                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:16px;">
+                            <i class="fa-solid fa-trophy" style="color:#f59e0b; margin-right:6px;"></i> Derniers réclamants
+                        </div>
+                        <% if (oracleStats.topClaimers.length === 0) { %>
+                            <div style="color:var(--text-muted); font-size:13px; padding: 20px 0; text-align:center;">
+                                <i class="fa-solid fa-hourglass-half" style="font-size:24px; display:block; margin-bottom:8px;"></i>
+                                Aucune récompense réclamée aujourd'hui
+                            </div>
+                        <% } %>
+                        <% oracleStats.topClaimers.forEach(claimer => { %>
+                            <div class="oracle-claimer-row">
+                                <img class="oracle-claimer-avatar"
+                                     src="<%= claimer.userId?.photoProfil || 'https://ui-avatars.com/api/?background=4f46e5&color=fff&name=?' %>"
+                                     alt="">
+                                <span class="oracle-claimer-name"><%= claimer.userId?.nom || 'Utilisateur' %></span>
+                                <span class="oracle-claimer-badge">
+                                    +<%= claimer.quest?.reward?.xp || 0 %> XP
+                                </span>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

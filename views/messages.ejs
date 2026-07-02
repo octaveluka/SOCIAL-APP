@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'messages' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'messages' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Messages</h1>
+                    <div class="subtitle">Tes conversations et groupes</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <a href="/salons/new" class="btn btn-secondary" style="width:auto; padding:10px 18px;">
+                        <i class="fa-solid fa-fire"></i> Salon éphémère
+                    </a>
+                    <a href="/groups/new" class="btn" style="width:auto; padding:10px 20px;">
+                        <i class="fa-solid fa-people-group"></i> Nouveau groupe
+                    </a>
+                </div>
+            </div>
+
+            <!-- Groupes -->
+            <% if (groupes.length > 0) { %>
+                <div class="card">
+                    <div class="section-title"><i class="fa-solid fa-people-group"></i> Mes groupes</div>
+
+                    <% groupes.forEach(g => { %>
+                        <a href="/groups/<%= g._id %>" class="user-item" style="color:inherit; text-decoration:none;">
+                            <img src="<%= g.photo %>" alt="">
+                            <div class="user-item-info">
+                                <div class="user-item-name">
+                                    <% if (g.isEphemeral) { %><span style="font-size:11px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;padding:1px 6px;border-radius:10px;margin-right:4px;"><i class="fa-regular fa-clock"></i></span><% } %>
+                                    <%= g.nom %>
+                                </div>
+                                <div class="user-item-sub">
+                                    <%= g.membres.length %> membres
+                                    <% if (g.isEphemeral && g.expiresAt) { %>
+                                        · expire <%= new Date(g.expiresAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </a>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <!-- Conversations privées -->
+            <div class="card">
+                <div class="section-title"><i class="fa-solid fa-message"></i> Conversations</div>
+
+                <% if (conversations.length === 0) { %>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-comment-dots"></i>
+                        <p>Aucune conversation pour le moment.</p>
+                    </div>
+                <% } %>
+
+                <% conversations.forEach(conv => { %>
+                    <a href="/messages/<%= conv.partner._id %>" class="user-item" style="color:inherit; text-decoration:none;" data-partner-id="<%= conv.partner._id %>">
+                        <img src="<%= conv.partner.photoProfil %>" alt="">
+                        <div class="user-item-info">
+                            <div class="user-item-name">
+                                <%= conv.partner.nom %>
+                                <%- include('partials/badges', { badges: conv.partner.badges || [] }) %>
+                            </div>
+                            <div class="user-item-sub">
+                                <%= conv.lastMsg.contenu.length > 40 ? conv.lastMsg.contenu.slice(0, 40) + '...' : conv.lastMsg.contenu %>
+                            </div>
+                        </div>
+                        <% if (conv.unreadCount > 0) { %>
+                            <span class="badge" style="position:static;"><%= conv.unreadCount %></span>
+                        <% } %>
+                    </a>
+                <% }) %>
+            </div>
+
+            <!-- Démarrer une conversation -->
+            <% if (amis.length > 0) { %>
+                <div class="card">
+                    <div class="section-title"><i class="fa-solid fa-user-group"></i> Démarrer une conversation</div>
+
+                    <% amis.forEach(ami => { %>
+                        <a href="/messages/<%= ami._id %>" class="user-item" style="color:inherit; text-decoration:none;">
+                            <img src="<%= ami.photoProfil %>" alt="">
+                            <div class="user-item-info">
+                                <div class="user-item-name">
+                                    <%= ami.nom %>
+                                    <%- include('partials/badges', { badges: ami.badges || [] }) %>
+                                </div>
+                                <div class="user-item-sub">
+                                    <span class="online-dot <%= ami.enLigne ? 'online' : 'offline' %>"></span>
+                                    <%= ami.enLigne ? 'En ligne' : 'Hors ligne' %>
+                                </div>
+                            </div>
+                        </a>
+                    <% }) %>
+                </div>
+            <% } %>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const currentUserId = "<%= currentUserId %>";
+        const socket = io({ query: { userId: currentUserId } });
+
+        // Fonction pour mettre à jour la liste des conversations en temps réel
+        function updateConversationList(newMessage) {
+            // Vérifier si le message concerne l'utilisateur connecté
+            const isForCurrentUser = newMessage.destinataire === currentUserId || newMessage.expediteur === currentUserId;
+            if (!isForCurrentUser) return;
+
+            // Trouver l'ID du partenaire
+            const partnerId = newMessage.expediteur === currentUserId ? newMessage.destinataire : newMessage.expediteur;
+
+            // Chercher l'élément de la conversation dans le DOM
+            const conversationItems = document.querySelectorAll('.user-item[data-partner-id]');
+            let existingItem = null;
+            conversationItems.forEach(item => {
+                if (item.getAttribute('data-partner-id') === partnerId) {
+                    existingItem = item;
+                }
+            });
+
+            // Mettre à jour ou créer un nouvel élément
+            if (existingItem) {
+                // Mettre à jour le dernier message
+                const lastMsgSpan = existingItem.querySelector('.user-item-sub');
+                if (lastMsgSpan) {
+                    const text = newMessage.contenu.length > 40 ? newMessage.contenu.slice(0, 40) + '...' : newMessage.contenu;
+                    lastMsgSpan.textContent = text;
+                }
+                // Déplacer l'élément en haut de la liste (si on est dans la carte des conversations)
+                const card = existingItem.closest('.card');
+                if (card) {
+                    const container = card.querySelector('.user-item')?.parentNode;
+                    if (container) {
+                        container.insertBefore(existingItem, container.firstChild);
+                    }
+                }
+            } else {
+                // Si la conversation n'existe pas encore dans la liste, recharger la page pour tout récupérer
+                // (pour l'instant, simple rechargement)
+                location.reload();
+            }
+        }
+
+        // Écouter les nouveaux messages
+        socket.on('new-message', updateConversationList);
+    </script>
+</body>
+</html>

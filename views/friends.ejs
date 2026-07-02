@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'friends' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'friends' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Amis</h1>
+                    <div class="subtitle">Gère tes connexions et demandes d'amis</div>
+                </div>
+            </div>
+
+            <% if (success && success.length > 0) { %>
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span><%= success[0] %></span>
+                </div>
+            <% } %>
+
+            <!-- Demandes reçues -->
+            <% if (demandesRecues.length > 0) { %>
+                <div class="card">
+                    <div class="section-title">
+                        <i class="fa-solid fa-user-clock"></i>
+                        Demandes reçues (<%= demandesRecues.length %>)
+                    </div>
+
+                    <% demandesRecues.forEach(u => { %>
+                        <div class="user-item">
+                            <a href="/profile/<%= u._id %>">
+                                <img src="<%= u.photoProfil %>" alt="">
+                            </a>
+                            <div class="user-item-info">
+                                <a href="/profile/<%= u._id %>" style="color:inherit;">
+                                    <div class="user-item-name"><%= u.nom %></div>
+                                </a>
+                                <% if (u.bio) { %>
+                                    <div class="user-item-sub" style="word-wrap: break-word; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                        <%= u.bio %>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <form action="/friends/accept/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn" style="width:auto; padding:8px 16px;">
+                                        <i class="fa-solid fa-check"></i> Accepter
+                                    </button>
+                                </form>
+                                <form action="/friends/decline/<%= u._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:8px 16px;">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <!-- Demandes envoyées -->
+            <% if (demandesEnvoyees.length > 0) { %>
+                <div class="card">
+                    <div class="section-title">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        Demandes envoyées (<%= demandesEnvoyees.length %>)
+                    </div>
+
+                    <% demandesEnvoyees.forEach(u => { %>
+                        <div class="user-item">
+                            <a href="/profile/<%= u._id %>">
+                                <img src="<%= u.photoProfil %>" alt="">
+                            </a>
+                            <div class="user-item-info">
+                                <a href="/profile/<%= u._id %>" style="color:inherit;">
+                                    <div class="user-item-name"><%= u.nom %></div>
+                                </a>
+                                <div class="user-item-sub" style="color:var(--warning);">
+                                    <i class="fa-solid fa-clock"></i> En attente de réponse
+                                </div>
+                            </div>
+                            <form action="/friends/cancel/<%= u._id %>" method="POST" style="margin:0;">
+                                <button type="submit" class="btn btn-secondary" style="width:auto; padding:8px 16px;">
+                                    <i class="fa-solid fa-xmark"></i> Annuler
+                                </button>
+                            </form>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <!-- Liste d'amis -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-user-group"></i>
+                    Mes amis (<%= amis.length %>)
+                </div>
+
+                <% if (amis.length === 0) { %>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-user-group"></i>
+                        <p>Tu n'as pas encore d'amis.</p>
+                        <p>Utilise la recherche pour en trouver !</p>
+                    </div>
+                <% } %>
+
+                <% amis.forEach(u => { %>
+                    <div class="user-item">
+                        <a href="/profile/<%= u._id %>">
+                            <img src="<%= u.photoProfil %>" alt="">
+                        </a>
+                        <div class="user-item-info">
+                            <a href="/profile/<%= u._id %>" style="color:inherit;">
+                                <div class="user-item-name"><%= u.nom %></div>
+                            </a>
+                            <% if (u.bio) { %>
+                                <div class="user-item-sub" style="word-wrap: break-word; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    <%= u.bio %>
+                                </div>
+                            <% } %>
+                        </div>
+                        <a href="/messages/<%= u._id %>" class="btn" style="width:auto; padding:8px 16px;">
+                            <i class="fa-solid fa-comment"></i>
+                        </a>
+                    </div>
+                <% }) %>
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        #stories-container {
+            display: flex;
+            gap: 14px;
+            padding: 8px 0 16px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            margin-bottom: 8px;
+        }
+        #stories-container::-webkit-scrollbar { display: none; }
+        .story-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .story-ring {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            padding: 2.5px;
+            background: linear-gradient(45deg, #f59e0b, #ef4444, #7c3aed, #4f46e5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .story-ring.seen { background: #d1d5db; }
+        .story-ring-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2.5px solid #fff;
+            overflow: hidden;
+        }
+        .story-ring-inner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .story-add-btn {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            border: 2px dashed var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 22px;
+            color: var(--primary);
+        }
+        .story-add-btn:hover { background: var(--primary); color: #fff; }
+        .story-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 62px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .story-viewer-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 99999;
+            flex-direction: column;
+        }
+        .story-viewer-overlay.active { display: flex; }
+        .story-progress-bar {
+            display: flex;
+            gap: 4px;
+            padding: 12px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+        .story-progress-segment {
+            flex: 1;
+            height: 3px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .story-progress-fill {
+            height: 100%;
+            background: #fff;
+            border-radius: 3px;
+            width: 0%;
+        }
+        .story-viewer-header {
+            position: absolute;
+            top: 28px;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            z-index: 10;
+        }
+        .story-viewer-header img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.6);
+            object-fit: cover;
+        }
+        .story-viewer-author { color: #fff; font-weight: 700; font-size: 14px; }
+        .story-viewer-time { color: rgba(255,255,255,0.7); font-size: 12px; }
+        .story-viewer-close {
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            margin-left: auto;
+            background: none;
+            border: none;
+        }
+        .story-viewer-media {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .story-viewer-media img,
+        .story-viewer-media video { width: 100%; height: 100%; object-fit: contain; }
+        .story-viewer-text-overlay {
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 0 24px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+        }
+        .story-viewer-nav-prev {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 100px;
+            width: 40%;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .story-viewer-nav-next {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 100px;
+            width: 60%;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .story-viewer-footer {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+            z-index: 10;
+        }
+        .story-emoji-reactions { display: flex; gap: 6px; }
+        .story-emoji-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .story-views-count {
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .story-creator-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .story-creator-overlay.active { display: flex; }
+        .story-creator-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+        }
+        .story-creator-preview {
+            width: 100%;
+            height: 220px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            background: var(--background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+        }
+        .story-creator-preview img,
+        .story-creator-preview video { width: 100%; height: 100%; object-fit: cover; }
+        .story-color-picker { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .story-color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.15s;
+        }
+        .story-color-swatch.selected,
+        .story-color-swatch:hover { border-color: var(--text-primary); transform: scale(1.1); }
+
+        .share-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .share-modal-overlay.active { display: flex; }
+        .share-modal-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 480px) {
+            .story-ring { width: 54px; height: 54px; }
+            .story-add-btn { width: 54px; height: 54px; font-size: 18px; }
+            .story-label { font-size: 10px; max-width: 54px; }
+        }
+
+        /* ===== ORACLE V2 — QUÊTE DU JOUR ===== */
+        .oracle-quest-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0;
+            overflow: hidden;
+            margin-bottom: 16px;
+            transition: var(--transition);
+        }
+        .oracle-quest-card.oracle-completed {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 2px rgba(124,58,237,0.15);
+        }
+        .oracle-quest-card.oracle-claimed-anim {
+            animation: oraclePulse 0.6s ease;
+        }
+        @keyframes oraclePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.015); box-shadow: 0 0 0 6px rgba(124,58,237,0.12); }
+            100% { transform: scale(1); }
+        }
+        .oracle-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            gap: 12px;
+        }
+        .oracle-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .oracle-icon-wrap {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .oracle-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .oracle-subtitle {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 1px;
+        }
+        .oracle-rewards {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            flex-wrap: nowrap;
+        }
+        .oracle-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .oracle-streak-badge {
+            background: linear-gradient(135deg, #ff6b35, #f59e0b);
+            color: #fff;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(245,158,11,.35);
+        }
+        .oracle-pill-xp {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .oracle-pill-coins {
+            background: rgba(245,158,11,0.25);
+            color: #fcd34d;
+        }
+        .oracle-body {
+            padding: 16px 18px;
+        }
+        .oracle-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .oracle-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .oracle-quest-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 14px;
+            line-height: 1.4;
+        }
+        .oracle-progress-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .oracle-progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .oracle-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            border-radius: 10px;
+            transition: width 0.6s ease;
+            width: 0%;
+        }
+        .oracle-progress-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .oracle-footer {
+            display: flex;
+        }
+        .oracle-verify-btn {
+            font-size: 13px;
+        }
+        .oracle-claim-btn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none;
+            font-size: 14px;
+            font-weight: 700;
+            animation: oracleGlow 2s ease-in-out infinite;
+        }
+        @keyframes oracleGlow {
+            0%, 100% { box-shadow: 0 2px 8px rgba(124,58,237,0.3); }
+            50% { box-shadow: 0 4px 20px rgba(124,58,237,0.55); }
+        }
+        .oracle-claimed-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--success, #16a34a);
+        }
+        .oracle-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            z-index: 99999;
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .oracle-toast.oracle-toast-show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .oracle-toast-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            min-width: 240px;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'feed' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'feed' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Fil d'actualité</h1>
+                    <div class="subtitle">Découvre les dernières publications de tes amis</div>
+                </div>
+            </div>
+
+            <!-- ===== STORIES ===== -->
+            <div id="stories-container">
+                <div class="story-item" id="addStoryStatic">
+                    <div class="story-add-btn" onclick="openStoryCreator()">
+                        <i class="fa-solid fa-plus"></i>
+                    </div>
+                    <div class="story-label">Ta story</div>
+                </div>
+            </div>
+
+            <!-- ===== ORACLE V2 — QUÊTE DU JOUR ===== -->
+            <%- include('partials/oracle-banner') %>
+
+            <% if (error && error.length > 0) { %>
+                <div class="alert alert-error">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span><%= error[0] %></span>
+                </div>
+            <% } %>
+
+            <!-- Formulaire de publication -->
+            <div class="card post-form">
+                <form action="/post" method="POST" enctype="multipart/form-data">
+                    <div class="post-form-top">
+                        <img src="<%= user.photoProfil %>" class="post-form-avatar" alt="">
+                        <textarea name="contenu" placeholder="Quoi de neuf, <%= user.nom.split(' ')[0] %> ?" required></textarea>
+                    </div>
+                    <div id="imagePreview" style="margin:0 0 10px 56px;"></div>
+                    <div class="post-form-footer">
+                        <div class="post-form-tools">
+                            <label for="imageInput" title="Ajouter une image">
+                                <i class="fa-solid fa-image"></i>
+                            </label>
+                            <input type="file" id="imageInput" name="image" accept="image/*" style="display:none">
+                        </div>
+                        <button type="submit" class="btn">
+                            <i class="fa-solid fa-paper-plane"></i> Publier
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Liste des posts -->
+            <% if (posts.length === 0) { %>
+                <div class="card empty-state">
+                    <i class="fa-solid fa-newspaper"></i>
+                    <p>Aucune publication pour le moment.</p>
+                    <p>Commence par publier ou ajoute des amis !</p>
+                </div>
+            <% } %>
+
+            <% posts.forEach(post => { %>
+                <div class="card post" data-id="<%= post._id %>">
+                    <div class="post-header">
+                        <a href="/profile/<%= post.auteur._id %>" class="ajax-link" style="flex-shrink:0;">
+                            <img src="<%= post.auteur.photoProfil %>" class="post-avatar" alt="">
+                        </a>
+                        <div>
+                            <div class="post-author">
+                                <a href="/profile/<%= post.auteur._id %>" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;">
+                                    <%= post.auteur.nom %>
+                                </a>
+                                <%- include('partials/badges', { badges: post.auteur.badges }) %>
+                            </div>
+                            <div class="post-date">
+                                <%= new Date(post.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <% if (post.isShared && post.sharedFrom) { %>
+                        <% if (post.shareMessage) { %>
+                            <div class="share-message" style="font-size:14.5px; line-height:1.6; color:var(--text-primary); margin-bottom:10px; white-space:pre-wrap;"><%= post.shareMessage %></div>
+                        <% } %>
+                        <div style="border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px; background:var(--background);">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                                <a href="/profile/<%= post.sharedFrom.auteur._id %>" class="ajax-link">
+                                    <img src="<%= post.sharedFrom.auteur.photoProfil %>" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" alt="">
+                                </a>
+                                <div>
+                                    <div style="font-weight:700; font-size:13px; color:var(--text-primary);">
+                                        <a href="/profile/<%= post.sharedFrom.auteur._id %>" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;">
+                                            <%= post.sharedFrom.auteur.nom %>
+                                        </a>
+                                        <%- include('partials/badges', { badges: post.sharedFrom.auteur.badges || [] }) %>
+                                    </div>
+                                    <div style="font-size:11px; color:var(--text-muted);">
+                                        <%= new Date(post.sharedFrom.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size:13.5px; color:var(--text-secondary); line-height:1.5; white-space:pre-wrap;"><%= post.sharedFrom.contenu %></div>
+                            <% if (post.sharedFrom.image) { %>
+                                <img src="<%= post.sharedFrom.image %>" style="width:100%; border-radius:6px; margin-top:8px; max-height:200px; object-fit:cover;" alt="">
+                            <% } %>
+                        </div>
+                    <% } else { %>
+                        <% if (post.contenu) { %>
+                            <div class="post-content"><%= post.contenu %></div>
+                        <% } %>
+                        <% if (post.image) { %>
+                            <img src="<%= post.image %>" class="post-image" alt="">
+                        <% } %>
+                    <% } %>
+
+                    <%
+                        const REACTION_EMOJIS = {heart:'❤️', haha:'😂', wow:'😮', sad:'😢', clap:'👏', grr:'😠'};
+                        const userReaction = (post.reactions || []).find(r => r.user && r.user.toString() === currentUserId);
+                        const userReactionType = userReaction ? userReaction.type : null;
+                        const hasReacted = userReactionType || post.likes.some(id => id.toString() === currentUserId);
+                        const totalReactions = post.likes.length;
+                        const reactionCounts = {};
+                        (post.reactions || []).forEach(r => { reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1; });
+                    %>
+                    <div class="post-actions">
+                        <button class="like-btn <%= hasReacted ? 'liked' : '' %>"
+                                data-id="<%= post._id %>"
+                                data-reaction="<%= userReactionType || '' %>"
+                                title="J'aime">
+                            <% if (userReactionType) { %>
+                                <span class="reaction-emoji-display"><%= REACTION_EMOJIS[userReactionType] %></span>
+                            <% } else { %>
+                                <i class="fa-solid fa-heart"></i>
+                            <% } %>
+                            <% const _topEmojis = Object.entries(reactionCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t])=>REACTION_EMOJIS[t]||'').join(''); %>
+                            <span class="likes-count" data-reactions='<%= JSON.stringify(reactionCounts) %>'><% if(_topEmojis && totalReactions > 1){ %><span class="reaction-bubbles"><%= _topEmojis %></span><% } %><span class="reaction-total"><%= totalReactions || '' %></span></span>
+                        </button>
+
+                        <button onclick="toggleComments('<%= post._id %>')" title="Commentaires">
+                            <i class="fa-solid fa-comment"></i>
+                            <span class="comments-count"><%= post.commentaires.length %></span>
+                        </button>
+
+                        <button onclick="openShareModal('<%= post._id %>')" title="Partager">
+                            <i class="fa-solid fa-share-nodes"></i>
+                            <span class="shares-count"><%= post.sharesCount || 0 %></span>
+                        </button>
+
+                        <% if (post.auteur._id.toString() === currentUserId) { %>
+                            <form action="/post/<%= post._id %>/delete" method="POST" onsubmit="return confirm('Supprimer ce post ?')">
+                                <button type="submit" title="Supprimer">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        <% } %>
+                    </div>
+
+                    <div class="comments-section" id="comments-<%= post._id %>" style="display:none;">
+                        <div class="comments-list">
+                            <%
+                                const CEMOJI = {heart:'❤️',haha:'😂',wow:'😮',sad:'😢',clap:'👏',grr:'😠'};
+                                const cTopLevel = post.commentaires.filter(c => !c.replyTo || !c.replyTo.commentId);
+                                const cRepliesMap = {};
+                                post.commentaires.forEach(c => {
+                                    if (c.replyTo && c.replyTo.commentId) {
+                                        const pid = c.replyTo.commentId.toString();
+                                        if (!cRepliesMap[pid]) cRepliesMap[pid] = [];
+                                        cRepliesMap[pid].push(c);
+                                    }
+                                });
+                            %>
+                            <% cTopLevel.forEach(comment => { %>
+                                <%
+                                    const cUserReaction = (comment.reactions||[]).find(r=>r.user&&r.user.toString()===currentUserId);
+                                    const cUserReactionType = cUserReaction ? cUserReaction.type : null;
+                                    const cTotalLikes = (comment.likes||[]).length;
+                                    const cReplies = cRepliesMap[comment._id.toString()] || [];
+                                %>
+                                <div class="comment" data-comment-id="<%= comment._id %>" data-post-id="<%= post._id %>">
+                                    <a href="/profile/<%= comment.auteur._id %>" class="ajax-link">
+                                        <img src="<%= comment.auteur.photoProfil %>" class="comment-avatar" alt="">
+                                    </a>
+                                    <div class="comment-right">
+                                        <div class="comment-bubble">
+                                            <div class="comment-author">
+                                                <a href="/profile/<%= comment.auteur._id %>" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;"><%= comment.auteur.nom %></a>
+                                                <%- include('partials/badges', { badges: comment.auteur.badges || [] }) %>
+                                            </div>
+                                            <div class="comment-text"><%= comment.texte %></div>
+                                        </div>
+                                        <div class="comment-actions">
+                                            <button class="comment-like-btn <%= cUserReactionType ? 'liked' : '' %>"
+                                                    data-post="<%= post._id %>"
+                                                    data-comment="<%= comment._id %>"
+                                                    data-reaction="<%= cUserReactionType || '' %>">
+                                                <% if (cUserReactionType) { %><span class="c-reaction-emoji"><%= CEMOJI[cUserReactionType] %></span><% } else { %><i class="fa-regular fa-heart"></i><% } %>
+                                                <% if (cTotalLikes > 0) { %><span class="comment-likes-count"><%= cTotalLikes %></span><% } %>
+                                            </button>
+                                            <button class="comment-reply-btn"
+                                                    data-post="<%= post._id %>"
+                                                    data-comment-id="<%= comment._id %>"
+                                                    data-comment-author="<%= comment.auteur.nom %>"
+                                                    data-comment-author-id="<%= comment.auteur._id %>">Répondre</button>
+                                            <% if (cReplies.length > 0) { %>
+                                                <button class="show-replies-btn" data-comment="<%= comment._id %>">
+                                                    <i class="fa-solid fa-comment-dots"></i> <%= cReplies.length %> réponse<%= cReplies.length > 1 ? 's' : '' %>
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% if (cReplies.length > 0) { %>
+                                    <div class="replies-wrap" id="replies-<%= comment._id %>" style="display:none;">
+                                        <% cReplies.forEach(reply => { %>
+                                            <%
+                                                const rUserReaction = (reply.reactions||[]).find(r=>r.user&&r.user.toString()===currentUserId);
+                                                const rUserReactionType = rUserReaction ? rUserReaction.type : null;
+                                                const rTotalLikes = (reply.likes||[]).length;
+                                            %>
+                                            <div class="comment comment-reply-item" data-comment-id="<%= reply._id %>" data-post-id="<%= post._id %>">
+                                                <a href="/profile/<%= reply.auteur._id %>" class="ajax-link">
+                                                    <img src="<%= reply.auteur.photoProfil %>" class="comment-avatar" alt="">
+                                                </a>
+                                                <div class="comment-right">
+                                                    <div class="comment-bubble">
+                                                        <div class="comment-author">
+                                                            <a href="/profile/<%= reply.auteur._id %>" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;"><%= reply.auteur.nom %></a>
+                                                            <%- include('partials/badges', { badges: reply.auteur.badges || [] }) %>
+                                                        </div>
+                                                        <% if (reply.replyTo && reply.replyTo.nom) { %><span class="comment-reply-tag">↩ @<%= reply.replyTo.nom %></span><% } %>
+                                                        <div class="comment-text"><%= reply.texte %></div>
+                                                    </div>
+                                                    <div class="comment-actions">
+                                                        <button class="comment-like-btn <%= rUserReactionType ? 'liked' : '' %>"
+                                                                data-post="<%= post._id %>"
+                                                                data-comment="<%= reply._id %>"
+                                                                data-reaction="<%= rUserReactionType || '' %>">
+                                                            <% if (rUserReactionType) { %><span class="c-reaction-emoji"><%= CEMOJI[rUserReactionType] %></span><% } else { %><i class="fa-regular fa-heart"></i><% } %>
+                                                            <% if (rTotalLikes > 0) { %><span class="comment-likes-count"><%= rTotalLikes %></span><% } %>
+                                                        </button>
+                                                        <button class="comment-reply-btn"
+                                                                data-post="<%= post._id %>"
+                                                                data-comment-id="<%= comment._id %>"
+                                                                data-comment-author="<%= reply.auteur.nom %>"
+                                                                data-comment-author-id="<%= reply.auteur._id %>">Répondre</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                <% } %>
+                            <% }) %>
+                        </div>
+                        <div class="comment-form-wrap">
+                            <div class="reply-indicator" style="display:none;">
+                                <span>↩ <strong class="reply-to-name"></strong></span>
+                                <button type="button" class="cancel-reply"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="mention-dropdown" style="display:none;"></div>
+                            <form class="comment-form ajax-comment-form" data-id="<%= post._id %>">
+                                <input type="text" name="texte" placeholder="Écrire un commentaire…" required autocomplete="off">
+                                <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+
+        </main>
+
+        <aside class="right-sidebar">
+            <h3 style="margin-bottom:12px; font-size:14px; color:var(--text-secondary);">À PROPOS</h3>
+            <p style="font-size:13px; color:var(--text-secondary); line-height:1.6;">
+                Bienvenue sur <strong>SocialApp</strong> <i class="fa-solid fa-rocket"></i><br>
+                Partage, connecte et discute avec tes amis !
+            </p>
+        </aside>
+    </div>
+
+    <!-- ===== MODAL PARTAGE ===== -->
+    <div class="share-modal-overlay" id="share-modal-overlay">
+        <div class="share-modal-card">
+            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-share-nodes" style="color:var(--primary);"></i>
+                Partager la publication
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-pen"></i>
+                    <input type="text" id="share-message-input" placeholder="Ajoute un message (optionnel)" maxlength="300">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeShareModal()" class="btn btn-secondary">Annuler</button>
+                <button onclick="submitShare()" class="btn" id="share-submit-btn">
+                    <i class="fa-solid fa-share-nodes"></i> Partager
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== OVERLAY STORIES ===== -->
+    <div class="story-viewer-overlay" id="story-viewer-overlay">
+        <div class="story-progress-bar" id="story-progress-container"></div>
+        <div class="story-viewer-header">
+            <img src="" alt="" id="story-author-avatar">
+            <div>
+                <div class="story-viewer-author" id="story-author-name"></div>
+                <div class="story-viewer-time" id="story-time"></div>
+            </div>
+            <button class="story-viewer-close" id="story-viewer-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="story-viewer-media" id="story-media-container"></div>
+        <div class="story-viewer-text-overlay" id="story-text-overlay"></div>
+        <div class="story-viewer-nav-prev" onclick="goToPrevStory()"></div>
+        <div class="story-viewer-nav-next" onclick="goToNextStory()"></div>
+        <div class="story-viewer-footer" id="story-viewer-footer">
+            <div class="story-views-count" id="storyViewsCount" style="cursor:pointer; color:rgba(255,255,255,0.85); font-size:12px; display:flex; align-items:center; gap:5px;" title="Voir les vues">
+                <i class="fa-regular fa-eye"></i>
+                <span id="story-views-count">0</span>
+                <span style="font-size:11px; opacity:0.65;">vue(s)</span>
+            </div>
+            <div class="story-emoji-reactions">
+                <button class="story-emoji-btn" onclick="reactToStory('❤️')">❤️</button>
+                <button class="story-emoji-btn" onclick="reactToStory('😂')">😂</button>
+                <button class="story-emoji-btn" onclick="reactToStory('😮')">😮</button>
+                <button class="story-emoji-btn" onclick="reactToStory('🔥')">🔥</button>
+                <button class="story-emoji-btn" onclick="reactToStory('👏')">👏</button>
+            </div>
+            <button id="story-delete-btn" onclick="deleteStory()" title="Supprimer" style="
+                display:none; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4);
+                color:#fca5a5; border-radius:8px; padding:5px 11px; font-size:12px;
+                cursor:pointer; transition:all .2s;
+            " onmouseover="this.style.background='rgba(239,68,68,0.45)'"
+               onmouseout="this.style.background='rgba(239,68,68,0.2)'">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+
+        <!-- Panel vues -->
+        <div id="story-views-panel" style="
+            display:none; position:absolute; bottom:64px; left:0; right:0;
+            background:rgba(8,8,20,0.93); backdrop-filter:blur(14px);
+            border-radius:18px 18px 0 0; padding:16px 20px;
+            z-index:20; max-height:240px; overflow-y:auto;
+        ">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <span style="color:#fff; font-size:14px; font-weight:700;">
+                    <i class="fa-regular fa-eye" style="margin-right:6px; color:rgba(255,255,255,0.6);"></i>Vus par
+                </span>
+                <button onclick="closeViewersPanel()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; cursor:pointer; font-size:14px; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="story-views-list"></div>
+        </div>
+    </div>
+
+    <!-- ===== CREATEUR DE STORY ===== -->
+    <div class="story-creator-overlay" id="story-creator-overlay">
+        <div class="story-creator-card">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <h3 style="font-size:16px; font-weight:700; color:var(--text-primary);">
+                    <i class="fa-solid fa-circle-plus" style="color:var(--primary);"></i> Créer une story
+                </h3>
+                <button onclick="closeStoryCreator()" style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="story-creator-preview" id="story-preview-area" style="background:#4f46e5;" onclick="document.getElementById('story-file-input').click()">
+                <div style="text-align:center; color:rgba(255,255,255,0.7);">
+                    <i class="fa-solid fa-image" style="font-size:32px; margin-bottom:8px; display:block;"></i>
+                    <div style="font-size:13px;">Clique pour ajouter une photo ou vidéo</div>
+                </div>
+            </div>
+            <input type="file" id="story-file-input" accept="image/*,video/*" style="display:none" onchange="handleStoryFileSelect(event)">
+            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; margin-top:4px;">Couleur de fond</div>
+            <div class="story-color-picker" id="story-color-picker"></div>
+            <div class="form-group" style="margin-bottom:14px;">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-pen"></i>
+                    <input type="text" id="story-text-input" placeholder="Ajouter un texte (optionnel)" maxlength="200">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeStoryCreator()" class="btn btn-secondary">Annuler</button>
+                <button onclick="publishStory()" class="btn" id="story-publish-btn">
+                    <i class="fa-solid fa-paper-plane"></i> Publier
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const currentUserId = "<%= currentUserId %>"
+
+        // Les fonctions toggleComments et preview image restent ici
+        function toggleComments(postId) {
+            const el = document.getElementById("comments-" + postId)
+            el.style.display = el.style.display === "none" ? "block" : "none"
+        }
+
+        document.getElementById("imageInput").addEventListener("change", function(e) {
+            const preview = document.getElementById("imagePreview")
+            preview.innerHTML = ""
+            const file = e.target.files[0]
+            if (file) {
+                const img = document.createElement("img")
+                img.src = URL.createObjectURL(file)
+                img.style.cssText = "max-width:100%;border-radius:10px;max-height:300px;"
+                preview.appendChild(img)
+            }
+        })
+// ============================================================
+    // STORIES — FONCTIONS GLOBALES (pour éviter l'erreur)
+    // ============================================================
+
+    let currentStoryGroups = [];
+    let currentGroupIndex = 0;
+    let currentStoryIndex = 0;
+    let storyTimer = null;
+    const STORY_DURATION = 5000;
+    const storyColors = ["#4f46e5","#7c3aed","#db2777","#dc2626","#d97706","#16a34a","#0891b2","#0f172a"];
+    let selectedColor = storyColors[0];
+    let selectedFile = null;
+
+    async function loadStories() {
+        try {
+            const res = await fetch("/stories");
+            const data = await res.json();
+            if (data.success) {
+                currentStoryGroups = data.groups || [];
+            } else {
+                currentStoryGroups = [];
+            }
+            renderStories();
+        } catch (e) {
+            console.error("Erreur loadStories:", e);
+            currentStoryGroups = [];
+            renderStories();
+        }
+    }
+
+    function renderStories() {
+        const container = document.getElementById("stories-container");
+        if (!container) return;
+        const addBtn = document.getElementById("addStoryStatic");
+        container.innerHTML = "";
+        container.appendChild(addBtn);
+        if (currentStoryGroups.length === 0) return;
+        currentStoryGroups.forEach((group, idx) => {
+            const item = document.createElement("div");
+            item.className = "story-item";
+            const allSeen = !group.hasUnseen;
+            item.innerHTML = `
+                <div class="story-ring ${allSeen ? 'seen' : ''}">
+                    <div class="story-ring-inner"><img src="${group.user.photoProfil}" alt=""></div>
+                </div>
+                <div class="story-label">${group.user.nom.split(" ")[0]}</div>
+            `;
+            item.onclick = () => openStoryViewer(idx);
+            container.appendChild(item);
+        });
+    }
+
+    function openStoryViewer(groupIndex, storyIndex = 0) {
+        currentGroupIndex = groupIndex;
+        currentStoryIndex = storyIndex;
+        document.getElementById("story-viewer-overlay").classList.add("active");
+        showStory();
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeStoryViewer() {
+        document.getElementById("story-viewer-overlay").classList.remove("active");
+        stopStoryTimer();
+        document.body.style.overflow = "";
+    }
+
+    function showStory() {
+        stopStoryTimer();
+        closeViewersPanel();
+        const group = currentStoryGroups[currentGroupIndex];
+        if (!group) { closeStoryViewer(); return; }
+        const story = group.stories[currentStoryIndex];
+        if (!story) { closeStoryViewer(); return; }
+
+        fetch(`/stories/${story._id}/view`, { method: "POST" });
+
+        const progressContainer = document.getElementById("story-progress-container");
+        progressContainer.innerHTML = "";
+        group.stories.forEach((_, i) => {
+            const seg = document.createElement("div");
+            seg.className = "story-progress-segment";
+            const fill = document.createElement("div");
+            fill.className = "story-progress-fill";
+            if (i < currentStoryIndex) fill.style.width = "100%";
+            seg.appendChild(fill);
+            progressContainer.appendChild(seg);
+        });
+
+        document.getElementById("story-author-avatar").src = group.user.photoProfil;
+        document.getElementById("story-author-name").textContent = group.user.nom;
+        const timeAgo = getTimeAgo(story.createdAt);
+        const expireStr = getExpireTime(story.expiresAt);
+        document.getElementById("story-time").textContent = timeAgo + (expireStr ? ` • ${expireStr}` : '');
+        const isOwnStory = group.user._id === currentUserId || group.user._id?.toString() === currentUserId;
+        document.getElementById("story-delete-btn").style.display = isOwnStory ? "flex" : "none";
+
+        const mediaContainer = document.getElementById("story-media-container");
+        if (story.couleurFond) {
+            mediaContainer.style.background = story.couleurFond;
+            mediaContainer.innerHTML = "";
+        } else if (story.mediaType === "video") {
+            mediaContainer.style.background = "#000";
+            mediaContainer.innerHTML = `<video src="${story.media}" autoplay muted playsinline style="width:100%;height:100%;object-fit:contain;"></video>`;
+        } else {
+            mediaContainer.style.background = "#000";
+            mediaContainer.innerHTML = `<img src="${story.media}" style="width:100%;height:100%;object-fit:contain;" alt="">`;
+        }
+
+        const textEl = document.getElementById("story-text-overlay");
+        textEl.textContent = story.texte || "";
+        textEl.style.display = story.texte ? "block" : "none";
+        document.getElementById("story-views-count").textContent = story.vues?.length || 0;
+
+        const viewsCountEl = document.getElementById("storyViewsCount");
+        viewsCountEl.onclick = () => toggleStoryViews(story._id);
+
+        startStoryTimer();
+    }
+
+    function startStoryTimer() {
+        const fills = document.querySelectorAll(".story-progress-fill");
+        if (!fills[currentStoryIndex]) return;
+        const fill = fills[currentStoryIndex];
+        fill.style.transition = `width ${STORY_DURATION}ms linear`;
+        fill.style.width = "100%";
+        storyTimer = setTimeout(goToNextStory, STORY_DURATION);
+    }
+
+    function stopStoryTimer() {
+        if (storyTimer) {
+            clearTimeout(storyTimer);
+            storyTimer = null;
+        }
+    }
+
+    function goToNextStory() {
+        const group = currentStoryGroups[currentGroupIndex];
+        if (!group) { closeStoryViewer(); return; }
+        if (currentStoryIndex < group.stories.length - 1) {
+            currentStoryIndex++;
+            showStory();
+        } else if (currentGroupIndex < currentStoryGroups.length - 1) {
+            currentGroupIndex++;
+            currentStoryIndex = 0;
+            showStory();
+        } else {
+            closeStoryViewer();
+        }
+    }
+
+    function goToPrevStory() {
+        if (currentStoryIndex > 0) {
+            currentStoryIndex--;
+            showStory();
+        } else if (currentGroupIndex > 0) {
+            currentGroupIndex--;
+            currentStoryIndex = currentStoryGroups[currentGroupIndex].stories.length - 1;
+            showStory();
+        }
+    }
+
+    async function reactToStory(emoji) {
+        const story = currentStoryGroups[currentGroupIndex]?.stories[currentStoryIndex];
+        if (!story) return;
+        await fetch(`/stories/${story._id}/react`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ emoji })
+        });
+        showReactionAnimation(emoji);
+    }
+
+    function showReactionAnimation(emoji) {
+        const overlay = document.getElementById("story-viewer-overlay");
+        const el = document.createElement("div");
+        el.style.cssText = `
+            position:absolute; bottom:120px; left:50%; transform:translateX(-50%);
+            font-size:48px; animation:storyReactionPop 1s ease forwards;
+            z-index:20; pointer-events:none;
+        `;
+        el.innerText = emoji;
+        overlay.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    // ── Utilitaires temps ────────────────────────────────────────
+    function getTimeAgo(dateStr) {
+        if (!dateStr) return 'à l\'instant'
+        const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+        if (diff < 60)   return 'à l\'instant'
+        if (diff < 3600) return `il y a ${Math.floor(diff / 60)}min`
+        if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
+        return `il y a ${Math.floor(diff / 86400)}j`
+    }
+    function getExpireTime(dateStr) {
+        if (!dateStr) return ''
+        const diff = Math.floor((new Date(dateStr).getTime() - Date.now()) / 1000)
+        if (diff <= 0)   return 'expirée'
+        if (diff < 3600) return `expire dans ${Math.floor(diff / 60)}min`
+        return `expire dans ${Math.floor(diff / 3600)}h`
+    }
+
+    // ── Panel vues ───────────────────────────────────────────────
+    function closeViewersPanel() {
+        const panel = document.getElementById("story-views-panel")
+        if (panel) panel.style.display = "none"
+    }
+
+    async function toggleStoryViews(storyId) {
+        const panel = document.getElementById("story-views-panel")
+        if (!panel) return
+        if (panel.style.display === "block") { closeViewersPanel(); return }
+
+        const listEl = document.getElementById("story-views-list")
+        listEl.innerHTML = `<div style="color:rgba(255,255,255,0.5);text-align:center;padding:16px;">
+            <i class="fa-solid fa-spinner fa-spin"></i></div>`
+        panel.style.display = "block"
+
+        try {
+            const res = await fetch(`/stories/${storyId}/viewers`)
+            const data = await res.json()
+            if (!data.success) { listEl.innerHTML = `<div style="color:rgba(255,255,255,0.4);text-align:center;padding:12px;">Erreur de chargement</div>`; return }
+            if (data.restricted) { listEl.innerHTML = `<div style="color:rgba(255,255,255,0.4);text-align:center;padding:12px;font-size:13px;">Uniquement visible par l'auteur</div>`; return }
+            const viewers = data.viewers || []
+            if (viewers.length === 0) {
+                listEl.innerHTML = `<div style="color:rgba(255,255,255,0.4);text-align:center;padding:12px;font-size:13px;">Aucune vue pour l'instant 👀</div>`
+            } else {
+                listEl.innerHTML = viewers.map(v => `
+                    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                        <img src="${v.user?.photoProfil || ''}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.15);" onerror="this.src='https://ui-avatars.com/api/?background=4f46e5&color=fff&name=${encodeURIComponent(v.user?.nom||'?')}'">
+                        <div>
+                            <div style="color:#fff;font-size:13px;font-weight:600;">${v.user?.nom || 'Inconnu'}</div>
+                            <div style="color:rgba(255,255,255,0.45);font-size:11px;">${getTimeAgo(v.viewedAt)}</div>
+                        </div>
+                    </div>`).join('')
+            }
+        } catch(e) {
+            listEl.innerHTML = `<div style="color:rgba(255,255,255,0.4);text-align:center;padding:12px;">Erreur de chargement</div>`
+        }
+    }
+
+    // ── Supprimer sa story ───────────────────────────────────────
+    async function deleteStory() {
+        const story = currentStoryGroups[currentGroupIndex]?.stories[currentStoryIndex]
+        if (!story) return
+        if (!confirm('Supprimer cette story définitivement ?')) return
+        try {
+            const res = await fetch(`/stories/${story._id}`, { method: 'DELETE' })
+            const data = await res.json()
+            if (!data.success) return
+            const group = currentStoryGroups[currentGroupIndex]
+            group.stories.splice(currentStoryIndex, 1)
+            if (group.stories.length === 0) {
+                currentStoryGroups.splice(currentGroupIndex, 1)
+                if (currentStoryGroups.length === 0) { closeStoryViewer(); return }
+                if (currentGroupIndex >= currentStoryGroups.length) currentGroupIndex = currentStoryGroups.length - 1
+                currentStoryIndex = 0
+            } else {
+                if (currentStoryIndex >= group.stories.length) currentStoryIndex = group.stories.length - 1
+            }
+            showStory()
+            loadStories()
+        } catch(e) { console.error(e) }
+    }
+
+    function openStoryCreator() {
+        document.getElementById("story-creator-overlay").classList.add("active");
+        document.body.style.overflow = "hidden";
+        renderColorPicker();
+    }
+
+    function closeStoryCreator() {
+        document.getElementById("story-creator-overlay").classList.remove("active");
+        document.body.style.overflow = "";
+        document.getElementById("story-file-input").value = "";
+        document.getElementById("story-text-input").value = "";
+        selectedFile = null;
+        const preview = document.getElementById("story-preview-area");
+        preview.style.background = selectedColor;
+        preview.innerHTML = `<div style="text-align:center; color:rgba(255,255,255,0.7);"><i class="fa-solid fa-image" style="font-size:32px; margin-bottom:8px; display:block;"></i><div style="font-size:13px;">Clique pour ajouter une photo ou vidéo</div></div>`;
+    }
+
+    function renderColorPicker() {
+        const container = document.getElementById("story-color-picker");
+        if (!container) return;
+        container.innerHTML = "";
+        storyColors.forEach(color => {
+            const swatch = document.createElement("div");
+            swatch.className = "story-color-swatch" + (color === selectedColor ? " selected" : "");
+            swatch.style.background = color;
+            swatch.onclick = () => {
+                selectedColor = color;
+                document.querySelectorAll(".story-color-swatch").forEach(s => s.classList.remove("selected"));
+                swatch.classList.add("selected");
+                if (!selectedFile) document.getElementById("story-preview-area").style.background = color;
+            };
+            container.appendChild(swatch);
+        });
+    }
+
+    function handleStoryFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        selectedFile = file;
+        const preview = document.getElementById("story-preview-area");
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = file.type.startsWith("video/")
+            ? `<video src="${url}" style="width:100%;height:100%;object-fit:cover;" autoplay muted loop></video>`
+            : `<img src="${url}" style="width:100%;height:100%;object-fit:cover;" alt="">`;
+        preview.style.background = "none";
+    }
+
+    async function publishStory() {
+        const texte = document.getElementById("story-text-input").value.trim();
+        const btn = document.getElementById("story-publish-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publication...';
+        try {
+            let res;
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append("media", selectedFile);
+                if (texte) formData.append("texte", texte);
+                formData.append("couleurFond", selectedColor);
+                res = await fetch("/stories", { method: "POST", body: formData });
+            } else if (texte) {
+                res = await fetch("/stories/text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ texte, couleurFond: selectedColor })
+                });
+            } else {
+                alert("Ajoute une image ou un texte.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Publier';
+                return;
+            }
+            const data = await res.json();
+            if (data.success) {
+                closeStoryCreator();
+                loadStories();
+            } else {
+                alert(data.error || "Erreur");
+            }
+        } catch (e) {
+            alert("Erreur de connexion.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Publier';
+        }
+    }
+
+    // Exposer les fonctions globalement
+    window.openStoryCreator = openStoryCreator;
+    window.openStoryViewer = openStoryViewer;
+    window.goToNextStory = goToNextStory;
+    window.goToPrevStory = goToPrevStory;
+    window.reactToStory = reactToStory;
+    window.closeStoryViewer = closeStoryViewer;
+    window.closeStoryCreator = closeStoryCreator;
+    window.handleStoryFileSelect = handleStoryFileSelect;
+    window.publishStory = publishStory;
+    window.toggleStoryViews = toggleStoryViews;
+    window.loadStories = loadStories;
+
+    // Initialiser au chargement
+    document.addEventListener("DOMContentLoaded", function() {
+        loadStories();
+
+        document.getElementById("story-viewer-close")?.addEventListener("click", closeStoryViewer);
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                closeStoryViewer();
+                closeStoryCreator();
+                closeShareModal();
+            }
+            if (e.key === "ArrowRight") goToNextStory();
+            if (e.key === "ArrowLeft") goToPrevStory();
+        });
+
+        document.getElementById("share-modal-overlay")?.addEventListener("click", function(e) {
+            if (e.target.id === "share-modal-overlay") closeShareModal();
+        });
+
+        if (!document.getElementById("storyReactionStyle")) {
+            const style = document.createElement("style");
+            style.id = "storyReactionStyle";
+            style.textContent = `
+                @keyframes storyReactionPop {
+                    0% { opacity:1; transform:translateX(-50%) scale(0.8); }
+                    50% { opacity:1; transform:translateX(-50%) translateY(-30px) scale(1.3); }
+                    100% { opacity:0; transform:translateX(-50%) translateY(-60px) scale(0.8); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    });
+
+    console.log("📸 Stories chargées (depuis feed.ejs)");
+
+    </script>
+
+    <script src="/js/feed.js?v=2"></script>
+    <script src="/js/oracle.js?v=5"></script>
+
+    <script>
+    // =============================================
+    // RECHARGEMENT AUTOMATIQUE DU FEED (Socket.io)
+    // =============================================
+    (function() {
+        const feedEl = document.querySelector(".feed");
+        if (!feedEl) return;
+
+        const socket = window.notificationSocket || (typeof io !== 'undefined' ? io({ query: { userId: "<%= currentUserId %>" } }) : null);
+        if (!socket) return;
+
+        socket.on("new-post", function(post) {
+            if (!post || !post._id) return;
+            if (document.querySelector(`.post[data-id="${post._id}"]`)) return;
+
+            const div = document.createElement("div");
+            div.className = "card post";
+            div.setAttribute("data-id", post._id);
+
+            const date = new Date(post.createdAt).toLocaleString("fr-FR", {
+                day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+            });
+
+            div.innerHTML = `
+                <div class="post-header">
+                    <a href="/profile/${post.auteur._id}" class="ajax-link" style="flex-shrink:0;">
+                        <img src="${post.auteur.photoProfil}" class="post-avatar" alt="">
+                    </a>
+                    <div>
+                        <div class="post-author"><a href="/profile/${post.auteur._id}" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;">${post.auteur.nom}</a></div>
+                        <div class="post-date">${date}</div>
+                    </div>
+                </div>
+                ${post.contenu ? `<div class="post-content">${post.contenu}</div>` : ""}
+                ${post.image ? `<img src="${post.image}" class="post-image" alt="">` : ""}
+                <div class="post-actions">
+                    <button class="like-btn" data-id="${post._id}" data-reaction="" title="J'aime">
+                        <i class="fa-solid fa-heart"></i>
+                        <span class="likes-count" data-reactions="{}">0</span>
+                    </button>
+                    <button onclick="toggleComments('${post._id}')" title="Commentaires">
+                        <i class="fa-solid fa-comment"></i>
+                        <span class="comments-count">0</span>
+                    </button>
+                    <button onclick="openShareModal('${post._id}')" title="Partager">
+                        <i class="fa-solid fa-share-nodes"></i>
+                        <span class="shares-count" data-id="${post._id}">0</span>
+                    </button>
+                </div>
+                <div class="comments-section" id="comments-${post._id}" style="display:none;">
+                    <div class="comments-list"></div>
+                    <form class="comment-form ajax-comment-form" data-id="${post._id}">
+                        <input type="text" name="texte" placeholder="Écrire un commentaire..." required>
+                        <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            `;
+
+            const firstPost = feedEl.querySelector(".post");
+            if (firstPost) feedEl.insertBefore(div, firstPost);
+            else feedEl.appendChild(div);
+
+            if (typeof initInteractions === 'function') initInteractions();
+
+            // Toast "nouveau post"
+            const toast = document.createElement("div");
+            toast.style.cssText = "position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#4f46e5;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(79,70,229,0.3);";
+            toast.innerHTML = `<i class="fa-solid fa-arrow-up"></i> Nouvelle publication de ${post.auteur.nom}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        });
+    })();
+    // ── Téléchargement photo au clic ──────────────────────────────────────
+    document.addEventListener('click', function(e) {
+        const img = e.target.closest('.post-image')
+        if (!img) return
+        e.preventDefault()
+        const src = img.src
+        if (!src) return
+        const a = document.createElement('a')
+        a.href = '/api/download-image?url=' + encodeURIComponent(src)
+        a.download = ''
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+    })
+    </script>
+</body>
+</html>

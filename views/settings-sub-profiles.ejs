@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/navbar', { currentPage: 'profile' }) %>
+
+<div class="main-container">
+    <%- include('partials/sidebar', { currentPage: 'profile' }) %>
+
+    <main class="feed">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-mask" style="margin-right:8px;color:var(--primary);"></i>Profils anonymes</h1>
+                <div class="subtitle">Crée jusqu'à 2 identités anonymes pour discuter incognito dans les groupes</div>
+            </div>
+            <a href="/profile/edit/me" class="btn btn-secondary" style="width:auto;padding:10px 20px;">
+                <i class="fa-solid fa-arrow-left"></i> Retour
+            </a>
+        </div>
+
+        <!-- LISTE -->
+        <div id="spList" style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;"></div>
+
+        <!-- BOUTON CRÉER -->
+        <div id="createSection">
+            <button id="showFormBtn" class="btn btn-primary" style="width:100%;padding:12px;">
+                <i class="fa-solid fa-plus"></i> Créer un profil anonyme
+            </button>
+        </div>
+
+        <!-- FORMULAIRE -->
+        <div id="spForm" style="display:none;background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:16px;">
+            <h3 id="formTitle" style="margin:0 0 18px;font-size:16px;">Nouveau profil anonyme</h3>
+
+            <!-- Prévisualisation -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px;">
+                <img id="avatarPreview" src="https://ui-avatars.com/api/?background=4f46e5&color=fff&name=%F0%9F%90%BA&size=128&bold=true"
+                     style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);">
+                <span id="namePreview" style="font-weight:700;font-size:15px;color:var(--text-primary);">Mon profil</span>
+            </div>
+
+            <!-- Pseudo -->
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-secondary);">
+                    Pseudo anonyme <span style="color:var(--text-muted);font-weight:400;">(20 car. max)</span>
+                </label>
+                <input type="text" id="spName" maxlength="20" placeholder="Ex: Renard Mystère"
+                       style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg-secondary);color:var(--text-primary);font-size:14px;outline:none;box-sizing:border-box;">
+            </div>
+
+            <!-- Couleur -->
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">Couleur de fond</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;" id="colorPicker">
+                    <button type="button" class="color-swatch" data-color="4f46e5" style="width:32px;height:32px;border-radius:50%;background:#4f46e5;border:3px solid var(--text-primary);cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="7c3aed" style="width:32px;height:32px;border-radius:50%;background:#7c3aed;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="db2777" style="width:32px;height:32px;border-radius:50%;background:#db2777;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="dc2626" style="width:32px;height:32px;border-radius:50%;background:#dc2626;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="ea580c" style="width:32px;height:32px;border-radius:50%;background:#ea580c;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="16a34a" style="width:32px;height:32px;border-radius:50%;background:#16a34a;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="2563eb" style="width:32px;height:32px;border-radius:50%;background:#2563eb;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="0891b2" style="width:32px;height:32px;border-radius:50%;background:#0891b2;border:3px solid transparent;cursor:pointer;"></button>
+                    <button type="button" class="color-swatch" data-color="475569" style="width:32px;height:32px;border-radius:50%;background:#475569;border:3px solid transparent;cursor:pointer;"></button>
+                </div>
+            </div>
+
+            <!-- Emoji -->
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">Animal mascotte</label>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="emojiPicker">
+                    <button type="button" class="emoji-swatch" data-emoji="🐺" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--primary);background:var(--bg-secondary);cursor:pointer;">🐺</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦊" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦊</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐻" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐻</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦁" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦁</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐯" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐯</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐨" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐨</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐙" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐙</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦈" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦈</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐧" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐧</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦜" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦜</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐸" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐸</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦋" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦋</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦅" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦅</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐬" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐬</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦉" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦉</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐢" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐢</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐆" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐆</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦎" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦎</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🐡" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🐡</button>
+                    <button type="button" class="emoji-swatch" data-emoji="🦩" style="width:38px;height:38px;border-radius:8px;font-size:20px;border:2px solid var(--border);background:var(--bg-secondary);cursor:pointer;">🦩</button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:10px;">
+                <button type="button" id="cancelFormBtn" class="btn btn-secondary" style="flex:1;">Annuler</button>
+                <button type="button" id="saveSpBtn" class="btn btn-primary" style="flex:2;">
+                    <i class="fa-solid fa-check"></i> Enregistrer
+                </button>
+            </div>
+            <input type="hidden" id="editSpId" value="">
+        </div>
+    </main>
+</div>
+
+<script>
+let selectedColor = '4f46e5'
+let selectedEmoji = '🐺'
+let editId = null
+
+function updatePreview() {
+    const name = document.getElementById('spName').value.trim() || 'Mon profil'
+    const url = `https://ui-avatars.com/api/?background=${selectedColor}&color=fff&name=${encodeURIComponent(selectedEmoji)}&size=128&bold=true`
+    document.getElementById('avatarPreview').src = url
+    document.getElementById('namePreview').textContent = name
+}
+
+document.getElementById('spName').addEventListener('input', updatePreview)
+
+document.querySelectorAll('.color-swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch').forEach(b => b.style.border = '3px solid transparent')
+        btn.style.border = '3px solid var(--text-primary)'
+        selectedColor = btn.dataset.color
+        updatePreview()
+    })
+})
+
+document.querySelectorAll('.emoji-swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.emoji-swatch').forEach(b => b.style.border = '2px solid var(--border)')
+        btn.style.border = '2px solid var(--primary)'
+        selectedEmoji = btn.dataset.emoji
+        updatePreview()
+    })
+})
+
+async function loadProfiles() {
+    const res = await fetch('/api/subprofiles')
+    const data = await res.json()
+    const list = document.getElementById('spList')
+    list.innerHTML = ''
+
+    if (!data.subProfiles || !data.subProfiles.length) {
+        list.innerHTML = `<div style="text-align:center;padding:28px;color:var(--text-muted);font-size:14px;border:1.5px dashed var(--border);border-radius:14px;">
+            <i class="fa-solid fa-mask" style="font-size:32px;opacity:.25;display:block;margin-bottom:10px;"></i>
+            Aucun profil anonyme pour l'instant
+        </div>`
+    } else {
+        data.subProfiles.forEach(sp => {
+            const card = document.createElement('div')
+            card.style.cssText = `display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;border:1.5px solid ${sp.isActive ? 'var(--primary)' : 'var(--border)'};background:var(--card-bg);`
+            card.innerHTML = `
+                <img src="${sp.anonymousAvatarUrl}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sp.anonymousUsername}</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${sp.isActive ? '<span style="color:var(--primary);font-weight:600;">🟢 Actif dans les groupes</span>' : '⚪ Inactif'}</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button class="edit-sp-btn" data-id="${sp._id}" data-name="${sp.anonymousUsername}" data-avatar="${sp.anonymousAvatarUrl}"
+                            style="border:1.5px solid var(--border);background:var(--bg-secondary);border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);">
+                        <i class="fa-solid fa-pen" style="font-size:12px;pointer-events:none;"></i>
+                    </button>
+                    <button class="toggle-sp-btn" data-id="${sp._id}"
+                            style="border:none;background:${sp.isActive ? 'var(--primary)' : 'var(--bg-secondary)'};color:${sp.isActive ? '#fff' : 'var(--text-primary)'};border-radius:8px;padding:0 14px;height:34px;cursor:pointer;font-size:12px;font-weight:600;">
+                        ${sp.isActive ? 'Désactiver' : 'Activer'}
+                    </button>
+                    <button class="delete-sp-btn" data-id="${sp._id}"
+                            style="border:1.5px solid #ef4444;background:transparent;border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#ef4444;">
+                        <i class="fa-solid fa-trash" style="font-size:12px;pointer-events:none;"></i>
+                    </button>
+                </div>`
+            list.appendChild(card)
+        })
+    }
+
+    document.getElementById('createSection').style.display =
+        (data.subProfiles && data.subProfiles.length >= 2) ? 'none' : 'block'
+
+    list.querySelectorAll('.edit-sp-btn').forEach(btn => {
+        btn.addEventListener('click', () => openEditForm(btn.dataset.id, btn.dataset.name, btn.dataset.avatar))
+    })
+    list.querySelectorAll('.toggle-sp-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            await fetch(`/api/subprofiles/${btn.dataset.id}/activate`, { method: 'POST' })
+            loadProfiles()
+        })
+    })
+    list.querySelectorAll('.delete-sp-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('Supprimer ce profil anonyme ?')) return
+            await fetch(`/api/subprofiles/${btn.dataset.id}`, { method: 'DELETE' })
+            loadProfiles()
+        })
+    })
+}
+
+function openCreateForm() {
+    editId = null
+    document.getElementById('formTitle').textContent = 'Nouveau profil anonyme'
+    document.getElementById('spName').value = ''
+    document.getElementById('editSpId').value = ''
+    selectedColor = '4f46e5'
+    selectedEmoji = '🐺'
+    document.querySelectorAll('.color-swatch').forEach((b, i) => b.style.border = i === 0 ? '3px solid var(--text-primary)' : '3px solid transparent')
+    document.querySelectorAll('.emoji-swatch').forEach((b, i) => b.style.border = i === 0 ? '2px solid var(--primary)' : '2px solid var(--border)')
+    updatePreview()
+    document.getElementById('spForm').style.display = 'block'
+    document.getElementById('spForm').scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function openEditForm(id, name, avatarUrl) {
+    editId = id
+    document.getElementById('formTitle').textContent = 'Modifier le profil'
+    document.getElementById('spName').value = name
+    document.getElementById('editSpId').value = id
+    document.getElementById('avatarPreview').src = avatarUrl
+    document.getElementById('namePreview').textContent = name
+    document.getElementById('spForm').style.display = 'block'
+    document.getElementById('spForm').scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function closeForm() {
+    document.getElementById('spForm').style.display = 'none'
+    editId = null
+}
+
+document.getElementById('showFormBtn').addEventListener('click', openCreateForm)
+document.getElementById('cancelFormBtn').addEventListener('click', closeForm)
+
+document.getElementById('saveSpBtn').addEventListener('click', async () => {
+    const name = document.getElementById('spName').value.trim()
+    if (!name) { alert('Le pseudo est requis.'); return }
+
+    const avatarUrl = `https://ui-avatars.com/api/?background=${selectedColor}&color=fff&name=${encodeURIComponent(selectedEmoji)}&size=128&bold=true`
+    const body = { anonymousUsername: name, anonymousAvatarUrl: avatarUrl }
+
+    const btn = document.getElementById('saveSpBtn')
+    btn.disabled = true
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enregistrement…'
+
+    const res = await fetch(editId ? `/api/subprofiles/${editId}` : '/api/subprofiles', {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+    const data = await res.json()
+    btn.disabled = false
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Enregistrer'
+
+    if (!res.ok) { alert(data.error || 'Erreur.'); return }
+    closeForm()
+    loadProfiles()
+})
+
+loadProfiles()
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<% 
+const badgeConfig = {
+    verifie:    { icon: "fa-check", label: "Vérifié", class: "badge-verifie" },
+    moderateur: { icon: "fa-shield", label: "Modérateur", class: "badge-moderateur" },
+    fondateur:  { icon: "fa-star", label: "Membre fondateur", class: "badge-fondateur" },
+    premium:    { icon: "fa-crown", label: "Premium", class: "badge-premium" },
+    staff:      { icon: "fa-screwdriver-wrench", label: "Staff", class: "badge-staff" }
+}
+%>
+<% if (typeof badges !== 'undefined' && badges && badges.length > 0) { %>
+    <% badges.forEach(b => { 
+        const cfg = badgeConfig[b.type]
+        if (!cfg) return
+    %>
+        <span class="badge-tooltip" data-label="<%= cfg.label %>">
+            <span class="user-badge <%= cfg.class %>">
+                <i class="fa-solid <%= cfg.icon %>"></i>
+            </span>
+        </span>
+    <% }) %>
+<% } %>

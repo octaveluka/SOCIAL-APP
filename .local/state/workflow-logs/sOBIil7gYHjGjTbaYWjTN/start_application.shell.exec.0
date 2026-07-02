@@ -1,0 +1,27 @@
+[1G[0K⠙[1G[0K
+> socialapp@1.0.0 start
+> node server.js
+
+[1G[0K⠙[1G[0Knode:internal/modules/cjs/loader:1143
+  throw err;
+  ^
+
+Error: Cannot find module 'dotenv'
+Require stack:
+- /home/runner/workspace/server.js
+[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:981:27)[39m
+[90m    at Module.require (node:internal/modules/cjs/loader:1231:19)[39m
+[90m    at require (node:internal/modules/helpers:177:18)[39m
+    at Object.<anonymous> [90m(/home/runner/workspace/[39mserver.js:1:1[90m)[39m
+[90m    at Module._compile (node:internal/modules/cjs/loader:1364:14)[39m
+[90m    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)[39m
+[90m    at Module.load (node:internal/modules/cjs/loader:1203:32)[39m
+[90m    at Module._load (node:internal/modules/cjs/loader:1019:12)[39m
+[90m    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: [ [32m'/home/runner/workspace/server.js'[39m ]
+}
+
+Node.js v18.20.8
+[1G[0K⠙[1G[0K

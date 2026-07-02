@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'notifications' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'notifications' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Notifications</h1>
+                    <div class="subtitle">Tes dernières activités</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <% if (notifications.length === 0) { %>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-bell"></i>
+                        <p>Aucune notification pour le moment.</p>
+                    </div>
+                <% } %>
+
+                <% notifications.forEach(notif => {
+                    let icon = "fa-bell"
+                    let iconColor = "var(--primary)"
+                    let iconBg = "var(--primary-light)"
+                    let texte = ""
+                    let lien = notif.lien || "/"
+
+                    switch (notif.type) {
+                        case "like":
+                            icon = "fa-thumbs-up"
+                            iconColor = "#4f46e5"
+                            iconBg = "#eef2ff"
+                            texte = "a aimé votre publication"
+                            break
+                        case "commentaire":
+                            icon = "fa-comment"
+                            iconColor = "#0891b2"
+                            iconBg = "#ecfeff"
+                            texte = "a commenté votre publication"
+                            break
+                        case "demande_ami":
+                            icon = "fa-user-plus"
+                            iconColor = "#16a34a"
+                            iconBg = "#dcfce7"
+                            texte = "vous a envoyé une demande d'ami"
+                            lien = "/friends"
+                            break
+                        case "ami_accepte":
+                            icon = "fa-user-check"
+                            iconColor = "#16a34a"
+                            iconBg = "#dcfce7"
+                            texte = "a accepté votre demande d'ami"
+                            break
+                        case "message":
+                            icon = "fa-comment-dots"
+                            iconColor = "#d97706"
+                            iconBg = "#fef3c7"
+                            texte = "vous a envoyé un message"
+                            break
+                        case "abonnement":
+                            icon = "fa-user-plus"
+                            iconColor = "#7c3aed"
+                            iconBg = "#ede9fe"
+                            texte = "a commencé à vous suivre"
+                            break
+                    }
+                %>
+                    <a href="<%= lien %>" class="notif-item <%= !notif.lu ? 'unread' : '' %>">
+                        <div class="notif-icon" style="background:<%= iconBg %>; color:<%= iconColor %>;">
+                            <i class="fa-solid <%= icon %>"></i>
+                        </div>
+                        <% if (notif.expediteur) { %>
+                            <img src="<%= notif.expediteur.photoProfil %>" class="notif-avatar" alt="">
+                        <% } else { %>
+                            <img src="/images/default-avatar.png" class="notif-avatar" alt="">
+                        <% } %>
+                        <div class="notif-content">
+                            <div class="notif-text">
+                                <% if (notif.expediteur) { %>
+                                    <strong><%= notif.expediteur.nom %></strong> <%= texte %>
+                                <% } else { %>
+                                    <strong>Utilisateur inconnu</strong> <%= texte %>
+                                <% } %>
+                            </div>
+                            <div class="notif-date">
+                                <%= new Date(notif.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %>
+                            </div>
+                        </div>
+                        <% if (!notif.lu) { %>
+                            <span class="notif-dot"></span>
+                        <% } %>
+                    </a>
+                <% }) %>
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>

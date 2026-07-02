@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'messages' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'messages' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Nouveau groupe</h1>
+                    <div class="subtitle">Crée un groupe et invite tes amis</div>
+                </div>
+                <a href="/messages" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                    <i class="fa-solid fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <div id="errorBox" class="alert alert-error" style="display:none;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <div class="card">
+                <form id="groupForm">
+
+                    <!-- Photo du groupe -->
+                    <div style="text-align:center; margin-bottom:28px;">
+                        <div style="position:relative; display:inline-block;">
+                            <img src="https://ui-avatars.com/api/?background=4f46e5&color=fff&name=G"
+                                 alt="" id="groupPhotoPreview"
+                                 style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid var(--border);">
+                            <label for="groupPhotoInput" style="
+                                position:absolute;
+                                bottom:0;
+                                right:0;
+                                width:30px;
+                                height:30px;
+                                background:var(--primary);
+                                color:#fff;
+                                border-radius:50%;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                cursor:pointer;
+                                font-size:13px;
+                                border:2px solid var(--card-bg);
+                            ">
+                                <i class="fa-solid fa-camera"></i>
+                            </label>
+                            <input type="file" id="groupPhotoInput" accept="image/*" style="display:none">
+                        </div>
+                        <div style="font-size:13px; color:var(--text-secondary); margin-top:10px;">
+                            Photo du groupe (optionnel)
+                        </div>
+                    </div>
+
+                    <!-- Nom du groupe -->
+                    <div class="form-group">
+                        <label>Nom du groupe</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-people-group"></i>
+                            <input type="text" name="nom" placeholder="Ex : Les copains du quartier" required maxlength="50">
+                        </div>
+                    </div>
+
+                    <!-- Sélection des amis -->
+                    <div class="form-group">
+                        <label>Ajouter des amis</label>
+
+                        <% if (amis.length === 0) { %>
+                            <div class="empty-state" style="padding:24px;">
+                                <i class="fa-solid fa-user-group"></i>
+                                <p>Tu n'as pas encore d'amis à ajouter.</p>
+                            </div>
+                        <% } else { %>
+                            <!-- Barre de recherche locale -->
+                            <div class="search-bar" style="margin-bottom:12px;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="searchAmis" placeholder="Rechercher un ami...">
+                            </div>
+
+                            <div id="amisList" style="max-height:300px; overflow-y:auto; border:1.5px solid var(--border); border-radius:var(--radius-sm);">
+                                <% amis.forEach(ami => { %>
+                                    <label class="ami-select-item" data-name="<%= ami.nom.toLowerCase() %>">
+                                        <div class="user-item" style="padding:12px 16px; cursor:pointer;">
+                                            <img src="<%= ami.photoProfil %>" alt="">
+                                            <div class="user-item-info">
+                                                <div class="user-item-name"><%= ami.nom %></div>
+                                                <div class="user-item-sub">
+                                                    <span class="online-dot <%= ami.enLigne ? 'online' : 'offline' %>"></span>
+                                                    <%= ami.enLigne ? 'En ligne' : 'Hors ligne' %>
+                                                </div>
+                                            </div>
+                                            <input type="checkbox" name="membres" value="<%= ami._id %>"
+                                                   style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;">
+                                        </div>
+                                    </label>
+                                <% }) %>
+                            </div>
+
+                            <div id="selectedCount" style="font-size:13px; color:var(--text-secondary); margin-top:8px;">
+                                0 ami(s) sélectionné(s)
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">
+                        <i class="fa-solid fa-check"></i> Créer le groupe
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Aperçu photo du groupe
+        document.getElementById("groupPhotoInput").addEventListener("change", function(e) {
+            const file = e.target.files[0]
+            if (file) {
+                document.getElementById("groupPhotoPreview").src = URL.createObjectURL(file)
+            }
+        })
+
+        // Recherche locale d'amis
+        const searchAmis = document.getElementById("searchAmis")
+        if (searchAmis) {
+            searchAmis.addEventListener("input", function() {
+                const q = this.value.toLowerCase().trim()
+                document.querySelectorAll(".ami-select-item").forEach(item => {
+                    const name = item.getAttribute("data-name")
+                    item.style.display = name.includes(q) ? "block" : "none"
+                })
+            })
+        }
+
+        // Compteur de sélection
+        document.querySelectorAll("input[name='membres']").forEach(cb => {
+            cb.addEventListener("change", () => {
+                const count = document.querySelectorAll("input[name='membres']:checked").length
+                document.getElementById("selectedCount").innerText = `${count} ami(s) sélectionné(s)`
+            })
+        })
+
+        // Soumission AJAX
+        document.getElementById("groupForm").addEventListener("submit", async (e) => {
+            e.preventDefault()
+
+            const form = e.target
+            const submitBtn = document.getElementById("submitBtn")
+            const errorBox = document.getElementById("errorBox")
+            const errorText = document.getElementById("errorText")
+
+            const nom = form.nom.value.trim()
+            const membres = [...form.querySelectorAll("input[name='membres']:checked")].map(cb => cb.value)
+
+            if (!nom) {
+                errorText.innerText = "Le nom du groupe est requis."
+                errorBox.style.display = "flex"
+                return
+            }
+
+            submitBtn.disabled = true
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...'
+            errorBox.style.display = "none"
+
+            try {
+                // Créer le groupe
+                const res = await fetch("/groups/new", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nom, membres })
+                })
+
+                const data = await res.json()
+
+                if (data.success) {
+                    // Si une photo a été sélectionnée, l'uploader
+                    const photoFile = document.getElementById("groupPhotoInput").files[0]
+                    if (photoFile) {
+                        const formData = new FormData()
+                        formData.append("photo", photoFile)
+
+                        await fetch(`/groups/${data.groupId}/photo`, {
+                            method: "POST",
+                            body: formData
+                        })
+                    }
+
+                    window.location.href = "/groups/" + data.groupId
+                } else {
+                    errorText.innerText = data.error || "Erreur lors de la création."
+                    errorBox.style.display = "flex"
+                    submitBtn.disabled = false
+                    submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Créer le groupe'
+                }
+            } catch (err) {
+                errorText.innerText = "Erreur de connexion."
+                errorBox.style.display = "flex"
+                submitBtn.disabled = false
+                submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Créer le groupe'
+            }
+        })
+    </script>
+</body>
+</html>

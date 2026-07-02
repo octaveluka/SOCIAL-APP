@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/navbar', { currentPage: 'profile' }) %>
+
+<div class="main-container">
+    <%- include('partials/sidebar', { currentPage: 'profile' }) %>
+
+    <main class="feed">
+        <div class="page-header" style="margin-bottom:24px;">
+            <div>
+                <h1 style="display:flex;align-items:center;gap:10px;">
+                    <i class="fa-solid fa-gear" style="color:var(--primary);"></i> Paramètres
+                </h1>
+                <div class="subtitle">Personnalise ton expérience et gère ton compte</div>
+            </div>
+            <a href="/profile/<%= user.id %>" class="btn btn-secondary ajax-link" style="width:auto;padding:10px 20px;">
+                <i class="fa-solid fa-arrow-left"></i> Retour au profil
+            </a>
+        </div>
+
+        <% if (success) { %>
+        <div class="alert alert-success" style="margin-bottom:16px;">
+            <i class="fa-solid fa-circle-check"></i> <span><%= success %></span>
+        </div>
+        <% } %>
+
+        <!-- ══ MON COMPTE ══ -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="padding:18px 20px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);">
+                <i class="fa-solid fa-user" style="margin-right:6px;"></i>Mon compte
+            </div>
+            <div style="display:flex;flex-direction:column;">
+                <a href="/profile/edit/me" class="settings-row ajax-link">
+                    <div class="settings-row-icon" style="background:rgba(99,102,241,.12);color:#6366f1;">
+                        <i class="fa-solid fa-pen"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Modifier le profil</div>
+                        <div class="settings-row-sub">Photo, bio, nom d'affichage</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right settings-row-arrow"></i>
+                </a>
+                <a href="/settings/password" class="settings-row ajax-link">
+                    <div class="settings-row-icon" style="background:rgba(59,130,246,.12);color:#3b82f6;">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Mot de passe</div>
+                        <div class="settings-row-sub">Modifier ton mot de passe de connexion</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right settings-row-arrow"></i>
+                </a>
+                <a href="/settings/security-question" class="settings-row ajax-link">
+                    <div class="settings-row-icon" style="background:rgba(16,185,129,.12);color:#10b981;">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Question de sécurité</div>
+                        <div class="settings-row-sub">Utilisée pour récupérer ton compte</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right settings-row-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- ══ CONFIDENTIALITÉ ══ -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="padding:18px 20px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);">
+                <i class="fa-solid fa-eye-slash" style="margin-right:6px;"></i>Confidentialité
+            </div>
+            <div style="display:flex;flex-direction:column;">
+
+                <!-- Statut en ligne -->
+                <div class="settings-row" style="cursor:default;">
+                    <div class="settings-row-icon" style="background:rgba(34,197,94,.12);color:#22c55e;">
+                        <i class="fa-solid fa-circle" style="font-size:10px;"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Masquer le statut en ligne</div>
+                        <div class="settings-row-sub">Les autres ne verront pas si tu es connecté</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleHideOnline" <%= user.hideOnlineStatus ? 'checked' : '' %>>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Incognito typing -->
+                <div class="settings-row" style="cursor:default;">
+                    <div class="settings-row-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;">
+                        <i class="fa-solid fa-keyboard"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Frappe fantôme</div>
+                        <div class="settings-row-sub">Personne ne voit que tu es en train d'écrire</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleIncognito" <%= user.isIncognitoInput ? 'checked' : '' %>>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Qui peut m'envoyer des messages -->
+                <div class="settings-row" style="cursor:default;flex-wrap:wrap;gap:8px;">
+                    <div class="settings-row-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;">
+                        <i class="fa-solid fa-comment-slash"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Qui peut m'envoyer des messages</div>
+                        <div class="settings-row-sub">Filtre les personnes pouvant te contacter</div>
+                    </div>
+                    <select id="allowMessagesSelect" class="settings-select">
+                        <option value="all" <%= user.allowMessagesFrom === 'all' ? 'selected' : '' %>>Tout le monde</option>
+                        <option value="friends" <%= user.allowMessagesFrom === 'friends' ? 'selected' : '' %>>Amis seulement</option>
+                        <option value="none" <%= user.allowMessagesFrom === 'none' ? 'selected' : '' %>>Personne</option>
+                    </select>
+                </div>
+
+                <!-- Apparaître dans la recherche -->
+                <div class="settings-row" style="cursor:default;">
+                    <div class="settings-row-icon" style="background:rgba(236,72,153,.12);color:#ec4899;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Apparaître dans la recherche</div>
+                        <div class="settings-row-sub">Désactive pour ne pas être trouvable</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleSearch" <%= user.showInSearch !== false ? 'checked' : '' %>>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ══ PROFILS ANONYMES ══ -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="padding:18px 20px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);">
+                <i class="fa-solid fa-mask" style="margin-right:6px;"></i>Profils anonymes
+            </div>
+            <div style="display:flex;flex-direction:column;">
+                <a href="/settings/sub-profiles" class="settings-row ajax-link">
+                    <div class="settings-row-icon" style="background:rgba(15,23,42,.12);color:var(--text-primary);">
+                        <i class="fa-solid fa-masks-theater"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Gérer mes profils anonymes</div>
+                        <div class="settings-row-sub">Crée jusqu'à 2 identités secrètes</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right settings-row-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+
+        <!-- ══ NOTIFICATIONS ══ -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="padding:18px 20px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);">
+                <i class="fa-solid fa-bell" style="margin-right:6px;"></i>Notifications
+            </div>
+            <div style="display:flex;flex-direction:column;">
+                <a href="/notifications" class="settings-row ajax-link">
+                    <div class="settings-row-icon" style="background:rgba(59,130,246,.12);color:#3b82f6;">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Voir mes notifications</div>
+                        <div class="settings-row-sub">Toutes tes alertes en un coup d'œil</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right settings-row-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- ══ ZONE DE DANGER ══ -->
+        <div class="card" style="margin-bottom:32px;border-color:rgba(239,68,68,.25);">
+            <div style="padding:18px 20px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#ef4444;">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>Zone de danger
+            </div>
+            <div style="display:flex;flex-direction:column;">
+                <div class="settings-row" style="cursor:pointer;" onclick="confirmDeleteAccount()">
+                    <div class="settings-row-icon" style="background:rgba(239,68,68,.12);color:#ef4444;">
+                        <i class="fa-solid fa-trash"></i>
+                    </div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title" style="color:#ef4444;">Supprimer mon compte</div>
+                        <div class="settings-row-sub">Action irréversible — toutes tes données seront perdues</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right settings-row-arrow" style="color:#ef4444;"></i>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Toast feedback -->
+<div id="settingsToast" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 20px;font-size:13px;font-weight:600;color:var(--text-primary);box-shadow:var(--shadow-lg);z-index:9999;white-space:nowrap;"></div>
+
+<!-- Modal suppression -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;align-items:center;justify-content:center;">
+    <div style="background:var(--card-bg);border-radius:var(--radius);padding:28px;max-width:380px;width:90%;box-shadow:var(--shadow-lg);">
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Supprimer le compte</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Cette action est <strong>irréversible</strong>. Toutes tes publications, messages et amis seront supprimés définitivement.</p>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Confirme en tapant ton email :</label>
+            <input type="text" id="deleteConfirmEmail" placeholder="<%= user.email %>" style="width:100%;padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--input-bg);color:var(--text-primary);font-size:13px;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="document.getElementById('deleteModal').style.display='none'" class="btn btn-secondary" style="flex:1;padding:10px;">Annuler</button>
+            <button onclick="doDeleteAccount()" class="btn" style="flex:1;padding:10px;background:#ef4444;border-color:#ef4444;">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: background .15s;
+}
+.settings-row:hover { background: var(--hover-bg); }
+.settings-row-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+}
+.settings-row-body { flex: 1; min-width: 0; }
+.settings-row-title { font-size: 14px; font-weight: 600; }
+.settings-row-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.settings-row-arrow { color: var(--text-muted); font-size: 12px; }
+.settings-select {
+    padding: 8px 12px; border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 13px; cursor: pointer;
+}
+.toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 24px;
+    cursor: pointer; transition: .2s;
+}
+.toggle-slider:before {
+    content: ""; position: absolute;
+    width: 18px; height: 18px;
+    left: 3px; top: 3px;
+    background: white; border-radius: 50%;
+    transition: .2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+</style>
+
+<script>
+const userEmail = '<%= user.email %>';
+
+function showToast(msg, ok = true) {
+    const t = document.getElementById('settingsToast');
+    t.textContent = (ok ? '✓ ' : '✗ ') + msg;
+    t.style.display = 'block';
+    t.style.borderColor = ok ? 'var(--primary)' : '#ef4444';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.style.display = 'none', 2500);
+}
+
+// Masquer statut en ligne
+document.getElementById('toggleHideOnline').addEventListener('change', async function() {
+    const r = await fetch('/api/settings/hide-online', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ enabled: this.checked })
+    });
+    const d = await r.json();
+    showToast(d.success ? 'Préférence mise à jour' : 'Erreur', !!d.success);
+    if (!d.success) this.checked = !this.checked;
+});
+
+// Frappe fantôme
+document.getElementById('toggleIncognito').addEventListener('change', async function() {
+    const r = await fetch('/api/settings/incognito-input', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ enabled: this.checked })
+    });
+    const d = await r.json();
+    showToast(d.success ? 'Préférence mise à jour' : 'Erreur', !!d.success);
+    if (!d.success) this.checked = !this.checked;
+});
+
+// Apparaître dans la recherche
+document.getElementById('toggleSearch').addEventListener('change', async function() {
+    const r = await fetch('/api/settings/show-in-search', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ enabled: this.checked })
+    });
+    const d = await r.json();
+    showToast(d.success ? 'Préférence mise à jour' : 'Erreur', !!d.success);
+    if (!d.success) this.checked = !this.checked;
+});
+
+// Qui peut envoyer des messages
+document.getElementById('allowMessagesSelect').addEventListener('change', async function() {
+    const r = await fetch('/api/settings/allow-messages', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ value: this.value })
+    });
+    const d = await r.json();
+    showToast(d.success ? 'Préférence mise à jour' : 'Erreur', !!d.success);
+});
+
+
+// Suppression compte
+function confirmDeleteAccount() {
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+async function doDeleteAccount() {
+    const typed = document.getElementById('deleteConfirmEmail').value.trim();
+    if (typed !== userEmail) {
+        showToast('Email incorrect', false);
+        return;
+    }
+    const r = await fetch('/api/settings/delete-account', { method: 'DELETE' });
+    const d = await r.json();
+    if (d.success) window.location.href = '/logout';
+    else showToast('Erreur lors de la suppression', false);
+}
+</script>
+</body>
+</html>

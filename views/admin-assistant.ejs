@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'admin' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'admin' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>🤖 Gestion de l'assistant</h1>
+                    <div class="subtitle">Contrôle à distance du bot SocialApp</div>
+                </div>
+                <a href="/admin" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                    <i class="fa-solid fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <div id="toast" class="alert alert-success" style="display:none;">
+                <i class="fa-solid fa-circle-check"></i>
+                <span id="toastText"></span>
+            </div>
+            <div id="errorToast" class="alert alert-error" style="display:none;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorToastText"></span>
+            </div>
+
+            <!-- Info assistant -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-robot"></i>
+                    Informations
+                </div>
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <img src="<%= bot.photoProfil %>" alt="avatar" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--border);">
+                    <div>
+                        <div style="font-weight:700; font-size:18px;">
+                            <%= bot.nom %>
+                            <% if (bot.verified) { %><i class="fa-solid fa-circle-check" style="color:#3b82f6; font-size:16px;"></i><% } %>
+                        </div>
+                        <div style="font-size:13px; color:var(--text-secondary);"><%= bot.bio %></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Changer la photo -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-image"></i>
+                    Changer la photo
+                </div>
+                <form action="/admin/assistant/photo" method="POST" enctype="multipart/form-data">
+                    <div class="form-group" style="display:flex; gap:12px; align-items:center;">
+                        <input type="file" name="photo" accept="image/*" required>
+                        <button type="submit" class="btn" style="width:auto; padding:10px 20px;">
+                            <i class="fa-solid fa-upload"></i> Mettre à jour
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Changer la bio -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-pen"></i>
+                    Modifier la bio
+                </div>
+                <form action="/admin/assistant/bio" method="POST">
+                    <div class="form-group">
+                        <textarea name="bio" rows="3" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:inherit;"><%= bot.bio %></textarea>
+                    </div>
+                    <button type="submit" class="btn" style="width:auto; padding:10px 20px;">
+                        <i class="fa-solid fa-save"></i> Sauvegarder
+                    </button>
+                </form>
+            </div>
+
+            <!-- Envoyer un message de mise à jour -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    Envoyer une mise à jour à tous
+                </div>
+                <form action="/admin/assistant/update" method="POST">
+                    <div class="form-group">
+                        <textarea name="message" rows="3" placeholder="Message de mise à jour..." required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:inherit;"></textarea>
+                    </div>
+                    <button type="submit" class="btn" style="width:auto; padding:10px 20px;">
+                        <i class="fa-solid fa-paper-plane"></i> Envoyer à tous
+                    </button>
+                </form>
+            </div>
+
+            <!-- Publier un post au nom de l'assistant -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-newspaper"></i>
+                    Publier un post (avec image)
+                </div>
+                <form action="/admin/assistant/post" method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <textarea name="contenu" rows="3" placeholder="Contenu du post..." required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:inherit;"></textarea>
+                    </div>
+                    <div class="form-group" style="display:flex; gap:12px; align-items:center;">
+                        <input type="file" name="image" accept="image/*">
+                        <button type="submit" class="btn" style="width:auto; padding:10px 20px;">
+                            <i class="fa-solid fa-upload"></i> Publier
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Relancer la campagne -->
+            <div class="card" style="border-color:var(--warning-light);">
+                <div class="section-title" style="color:var(--warning);">
+                    <i class="fa-solid fa-rotate"></i>
+                    Campagne de bienvenue
+                </div>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+                    Envoie à nouveau le message de bienvenue à tous les utilisateurs qui ne l'ont pas encore reçu.
+                </p>
+                <form action="/admin/assistant/welcome" method="POST">
+                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                        <i class="fa-solid fa-envelope"></i> Relancer la campagne
+                    </button>
+                </form>
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>

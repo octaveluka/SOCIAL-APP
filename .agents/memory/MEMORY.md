@@ -1,0 +1,1 @@
+- [SocialApp architecture](socialapp-arch.md) — Node/Express/MongoDB/Socket.io app; key decisions for the 5-brique extension

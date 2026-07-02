@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('partials/head') %></head>
+<body class="chat-page">
+<%- include('partials/navbar', { currentPage: 'messages' }) %>
+
+<div class="main-container chat-main-container">
+  <div class="chat-page-container" id="chatPageContainer">
+
+    <!-- HEADER GROUPE -->
+    <div class="chat-header">
+      <a href="/messages" class="chat-back"><i class="fa-solid fa-arrow-left"></i></a>
+      <img src="<%= group.photo %>" alt="" id="groupHeaderPhoto">
+      <div style="flex:1;min-width:0;overflow:hidden;">
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;font-size:15px;"><%= group.nom %></div>
+        <div style="font-size:11px;font-weight:400;color:var(--text-secondary);"><%= group.membres.length %> membre(s)</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;gap:12px;align-items:center;">
+        <!-- Voice Room -->
+        <button id="voiceRoomBtn" title="Salon vocal" class="chat-icon-btn" style="color:var(--text-secondary);"><i class="fa-solid fa-microphone-lines"></i></button>
+        <!-- Watch Party -->
+        <button id="watchPartyBtn" title="Watch Party" class="chat-icon-btn" style="color:var(--text-secondary);"><i class="fa-solid fa-film"></i></button>
+        <!-- SubProfile -->
+        <button id="subProfileBtn" title="Profil anonyme" class="chat-icon-btn" style="color:var(--text-secondary);"><i class="fa-solid fa-mask"></i></button>
+        <!-- Settings -->
+        <a href="/groups/<%= group._id %>/settings" class="chat-icon-btn" style="color:var(--text-secondary);"><i class="fa-solid fa-gear"></i></a>
+      </div>
+    </div>
+
+    <!-- CHAOS MODE BANNER -->
+    <div id="chaosBanner" class="chaos-banner" style="display:none;">
+      🎭 <strong>Chaos Mode actif !</strong> Tout le monde est anonymisé. <span id="chaosCountdown"></span>
+      <% if (isAdmin) { %><button id="stopChaosBtn" style="margin-left:12px;background:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">Arrêter</button><% } %>
+    </div>
+
+    <!-- VOICE ROOM PANEL -->
+    <div id="voiceRoomPanel" class="voice-room-panel" style="display:none;">
+      <div class="voice-room-header">
+        <i class="fa-solid fa-microphone-lines"></i> Salon Vocal
+        <span id="voiceRoomCount">0 membre(s)</span>
+        <button id="joinVoiceBtn" class="btn-voice-join">Rejoindre</button>
+        <button id="leaveVoiceBtn" class="btn-voice-leave" style="display:none;">Quitter</button>
+      </div>
+      <div id="voiceRoomMembers" class="voice-room-members"></div>
+      <div id="localAudioStatus" style="font-size:12px;color:var(--text-secondary);padding:4px 8px;display:none;">🎤 Micro actif</div>
+    </div>
+
+    <!-- FOCUS MODE PANEL -->
+    <div id="focusPanel" class="focus-panel" style="display:none;">
+      <div class="focus-panel-header">
+        <span>📝 Éditeur collaboratif</span>
+        <button id="closeFocusBtn" style="background:none;border:none;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <textarea id="focusEditor" placeholder="Écris ici… synchronisé en temps réel avec les membres du groupe"></textarea>
+    </div>
+
+    <!-- WATCH PARTY PANEL -->
+    <div id="watchPartyPanel" class="watch-party-panel" style="display:none;">
+      <div class="watch-party-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.1);">
+        <span style="font-weight:700;font-size:14px;">🎬 Watch Party</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;font-weight:600;color:#10b981;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);padding:3px 10px;border-radius:20px;">📡 Direct — tout le groupe voit</span>
+          <button id="closeWatchBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:inherit;line-height:1;">✕</button>
+        </div>
+      </div>
+      <!-- Inputs -->
+      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="watchUrlInput" placeholder="Colle un lien YouTube, Twitch ou MP4…" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.1);color:#fff;outline:none;">
+          <button id="watchLoadBtn" style="padding:8px 14px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Charger</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:rgba(255,255,255,0.5);">ou</span>
+          <label id="watchUploadLabel" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);">
+            <i class="fa-solid fa-upload" style="font-size:11px;"></i> Uploader une vidéo
+            <input type="file" id="watchFileInput" accept="video/*" style="display:none;">
+          </label>
+          <span id="watchFileName" style="font-size:11px;color:rgba(255,255,255,0.6);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        </div>
+        <div id="watchSyncWarning" style="display:none;font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 8px;">
+          ⚠️ Les fichiers locaux ne peuvent pas être synchronisés avec le groupe. Mode Solo activé automatiquement.
+        </div>
+      </div>
+      <!-- Player -->
+      <div id="watchPlayerContainer" style="width:100%;background:#000;display:none;">
+        <iframe id="watchIframe" style="width:100%;height:260px;border:none;display:none;" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+        <video id="watchVideo" controls style="width:100%;max-height:260px;background:#000;display:none;"></video>
+      </div>
+      <!-- Status -->
+      <div id="watchPartyStatus" style="font-size:11px;color:rgba(255,255,255,0.7);padding:6px 12px;display:none;text-align:center;border-top:1px solid rgba(255,255,255,0.1);"></div>
+    </div>
+
+    <!-- SUBPROFILE PANEL -->
+    <div id="subProfilePanel" class="subprofile-panel" style="display:none;">
+      <div class="subprofile-header">
+        <span><i class="fa-solid fa-mask" style="margin-right:6px;"></i>Profils anonymes</span>
+        <button id="closeSubProfileBtn" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-secondary);">✕</button>
+      </div>
+      <div id="subProfileList" style="padding:8px 12px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="padding:8px 12px 12px;">
+        <a href="/settings/sub-profiles" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1.5px dashed var(--border);border-radius:10px;color:var(--text-muted);font-size:13px;font-weight:600;text-decoration:none;transition:border-color .2s,color .2s;" id="manageSpsLink">
+          <i class="fa-solid fa-gear"></i> Gérer mes profils anonymes
+        </a>
+      </div>
+    </div>
+
+    <% if (group.systemGroupKey === 'primes') { %>
+    <!-- PRIMES PANEL -->
+    <div class="primes-panel" id="primesPanel">
+      <div class="primes-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <h3>🏆 Tâches Journalières</h3>
+          <p>Accomplis des missions pour gagner des crédits • Se renouvèle chaque jour à minuit</p>
+        </div>
+        <% if (isAdmin || isSiteAdmin) { %>
+        <button id="createPrimeBtnGroup" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">+ Créer prime</button>
+        <% } %>
+      </div>
+      <% if (isAdmin || isSiteAdmin) { %>
+      <div id="adminBountyForm" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <h4 style="margin:0 0 10px;font-size:13px;font-weight:700;">💰 Créer une offre personnalisée</h4>
+        <input type="text" id="adminCustomTitle" maxlength="80" placeholder="Titre de l'offre (ex: Partage cette publication)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);color:var(--text-primary);margin-bottom:8px;box-sizing:border-box;">
+        <textarea id="adminCustomDesc" maxlength="200" rows="2" placeholder="Description optionnelle (ex: Va liker et partager la dernière publication épinglée)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);color:var(--text-primary);margin-bottom:8px;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
+        <input type="number" id="adminRewardAmount" min="1" placeholder="Récompense en crédits" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);color:var(--text-primary);margin-bottom:10px;box-sizing:border-box;">
+        <div style="display:flex;gap:8px;">
+          <button id="submitAdminBounty" style="flex:1;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px;cursor:pointer;font-weight:600;font-size:13px;">Publier l'offre</button>
+          <button id="cancelAdminBounty" style="flex:1;background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;cursor:pointer;font-size:13px;">Annuler</button>
+        </div>
+      </div>
+      <% } %>
+      <div id="tasksContainer">
+        <div style="text-align:center;padding:20px;color:var(--text-secondary);">
+          <i class="fa-solid fa-spinner fa-spin"></i> Chargement des tâches…
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--border);">💰 Offres & Primes (tous les membres)</div>
+      <div id="bountiesContainer">
+        <div style="text-align:center;padding:14px;color:var(--text-secondary);font-size:13px;">
+          <i class="fa-solid fa-spinner fa-spin"></i> Chargement…
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- MESSAGES -->
+    <div class="chat-messages" id="chatMessages" <% if (group.systemGroupKey === 'primes') { %>style="display:none"<% } %>>
+      <% messages.forEach(msg => {
+        const expediteurId = msg.expediteur ? msg.expediteur._id.toString() : ''
+        const isOwn = expediteurId === currentUserId
+        const pseudo = msg.anonymousName || pseudoMap[expediteurId] || (msg.expediteur ? msg.expediteur.nom : 'Inconnu')
+        const isDeleted = msg.isDeleted
+        const isBurn = msg.expiresAt
+      %>
+        <div class="message-group-wrapper <%= isOwn ? 'sent-wrapper' : 'received-wrapper' %>" data-id="<%= msg._id %>">
+          <% if (!isOwn && msg.expediteur) { %>
+            <div class="message-author">
+              <% if (msg.anonymousAvatar) { %><img src="<%= msg.anonymousAvatar %>" style="width:18px;height:18px;border-radius:50%;margin-right:4px;" alt=""><% } %>
+              <%= pseudo %>
+              <% if (!msg.anonymousName) { %><%- include('partials/badges', { badges: msg.expediteur.badges || [] }) %><% } %>
+            </div>
+          <% } %>
+
+          <% if (isDeleted) { %>
+            <div class="message-bubble deleted-msg <%= isOwn ? 'sent' : 'received' %>">
+              <span class="deleted-text"><i class="fa-solid fa-ban"></i> Ce message a été supprimé</span>
+            </div>
+          <% } else if (msg.audio) { %>
+            <div class="message-bubble audio <%= isOwn ? 'sent' : 'received' %>" data-id="<%= msg._id %>" data-audio="<%= msg.audio %>">
+              <div class="audio-wrapper">
+                <button class="play-btn"><i class="fa-solid fa-play"></i></button>
+                <div class="waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <span class="duration"><%= msg.duration ? Math.floor(msg.duration/60)+':'+String(Math.floor(msg.duration%60)).padStart(2,'0') : '0:00' %></span>
+              </div>
+              <audio class="audio-player" src="<%= msg.audio %>" preload="metadata"></audio>
+            </div>
+          <% } else if (msg.image) { %>
+            <div class="message-bubble <%= msg.isSticker ? 'sticker-bubble' : 'img-bubble' %> <%= isOwn ? 'sent' : 'received' %>">
+              <% if (msg.repondA && msg.repondA.contenu) { %>
+                <div class="reply-quote"><i class="fa-solid fa-reply"></i> <%= (msg.repondA.contenu||'').slice(0,50) %></div>
+              <% } %>
+              <div class="message-image">
+                <img src="<%= msg.image %>" alt="" class="<%= msg.isSticker ? 'sticker-img' : 'chat-img' %>">
+                <% if (!msg.isSticker) { %>
+                  <a href="<%= msg.image %>" download class="img-download-btn" title="Télécharger"><i class="fa-solid fa-download"></i></a>
+                <% } %>
+              </div>
+            </div>
+          <% } else { %>
+            <div class="message-bubble <%= isOwn ? 'sent' : 'received' %> <%= isBurn ? 'burn-msg' : '' %> <%= msg.isCodeBlock ? 'code-block-msg' : '' %>">
+              <% if (msg.repondA) { %>
+                <div class="reply-quote"><i class="fa-solid fa-reply"></i>
+                  <% if (typeof msg.repondA === 'object' && msg.repondA.image) { %><i class="fa-solid fa-image"></i> Image
+                  <% } else { %><%= typeof msg.repondA === 'object' ? (msg.repondA.contenu||'').slice(0,50) : '' %>
+                  <% } %>
+                </div>
+              <% } %>
+              <% if (msg.isCodeBlock) { %>
+                <pre class="code-content"><code><%= msg.contenu %></code></pre>
+                <% if (msg.codeSignature) { %><div class="code-signature"><i class="fa-solid fa-signature"></i> <%= msg.codeSignature %></div><% } %>
+              <% } else { %>
+                <div class="message-text"><%= msg.contenu %></div>
+              <% } %>
+              <% if (isBurn) { %><div class="burn-timer" data-expires="<%= msg.expiresAt %>">⏳ …</div><% } %>
+            </div>
+          <% } %>
+
+          <% if (!isDeleted) { %>
+            <% if (msg.reactions && msg.reactions.length > 0) { %>
+              <div class="message-reactions">
+                <% const gr={};msg.reactions.forEach(r=>{gr[r.emoji]=(gr[r.emoji]||0)+1}) %>
+                <% Object.keys(gr).forEach(emoji=>{ %><span class="reaction-pill"><%= emoji %> <%= gr[emoji] %></span><% }) %>
+              </div>
+            <% } else { %>
+              <div class="message-reactions"></div>
+            <% } %>
+            <div class="message-toolbar">
+              <button class="toolbar-btn react-btn" title="Réagir"><i class="fa-regular fa-face-smile"></i></button>
+              <button class="toolbar-btn reply-btn" title="Répondre"><i class="fa-solid fa-reply"></i></button>
+              <% if (isOwn) { %>
+                <button class="toolbar-btn delete-group-btn" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
+              <% } %>
+            </div>
+            <div class="emoji-picker">
+              <span data-emoji="👍">👍</span><span data-emoji="❤️">❤️</span><span data-emoji="😂">😂</span>
+              <span data-emoji="😮">😮</span><span data-emoji="😢">😢</span><span data-emoji="🙏">🙏</span>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+
+    <% if (group.systemGroupKey !== 'primes') { %>
+    <!-- REPLY PREVIEW -->
+    <div class="reply-preview" id="replyPreview" style="display:none;">
+      <div class="reply-preview-content"><i class="fa-solid fa-reply"></i><span id="replyPreviewText"></span></div>
+      <button id="cancelReply"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- IA HINT -->
+    <div id="aiCommandHint" class="ai-command-hint" style="display:none;"></div>
+
+    <!-- FORMULAIRE -->
+    <form class="chat-input" id="chatForm" onsubmit="return false;">
+      <button type="button" id="photoBtn" class="chat-icon-btn" title="Photo"><i class="fa-solid fa-image"></i></button>
+      <input type="file" id="photoInput" accept="image/*" style="display:none;">
+      <button type="button" id="codeBtn" class="chat-icon-btn" title="Signer du code" style="color:var(--text-secondary);"><i class="fa-solid fa-code"></i></button>
+      <% if (isAdmin) { %>
+        <button type="button" id="chaosModeBtn" class="chat-icon-btn" title="Chaos Mode" style="color:var(--text-secondary);"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+      <% } %>
+      <input type="text" id="messageInput" placeholder="Écrire… (@ mention, /+ IA)" autocomplete="off">
+      <div class="chat-action-slot">
+        <button type="button" id="microBtn" class="chat-icon-btn"><i class="fa-solid fa-microphone"></i></button>
+        <button type="button" id="sendBtn" class="chat-send-btn" style="display:none;"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </form>
+    <!-- BARRE ENREGISTREMENT WHATSAPP -->
+    <div id="recordingBar" class="wa-recording-bar" style="display:none;">
+      <button type="button" id="cancelRecordBtn" class="wa-rec-cancel"><i class="fa-solid fa-trash"></i></button>
+      <div class="wa-rec-center">
+        <span class="wa-rec-dot"></span>
+        <span id="waTimer" class="wa-rec-timer">0:00</span>
+        <div class="wa-rec-wave">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+      <button type="button" id="sendRecordBtn" class="wa-rec-send"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+    <div class="mention-list" id="mentionList" style="display:none;"></div>
+    <% } %>
+  </div>
+
+</div>
+
+<!-- LIGHTBOX PHOTO -->
+<div id="photoLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+  <button id="lightboxClose" style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,0.12);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;transition:background .2s;"><i class="fa-solid fa-xmark"></i></button>
+  <img id="lightboxImg" src="" alt="" style="max-width:92vw;max-height:78vh;border-radius:14px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+  <a id="lightboxDownload" href="" download style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.13);color:#fff;padding:10px 28px;border-radius:24px;text-decoration:none;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(10px);transition:background .2s;">
+    <i class="fa-solid fa-download"></i> Télécharger
+  </a>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const currentUserId = "<%= currentUserId %>";
+const groupId = "<%= group._id %>";
+const isAdmin = <%= isAdmin %>;
+const membres = [<% group.membres.forEach(m => { %>{id:"<%= m.user._id %>",pseudo:"<%= pseudoMap[m.user._id.toString()] %>"},<% }) %>];
+let replyingTo = null, mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
+let chaosMap = {}, isChaosActive = false, chaosTimer = null;
+let inVoiceRoom = false, localStream = null, peerConnections = {};
+let isFocusMode = false, activeSubProfile = null;
+
+let socket;
+if (window.notificationSocket) { socket = window.notificationSocket; }
+else { socket = io({ query: { userId: currentUserId } }); window.notificationSocket = socket; }
+
+const chatMessages = document.getElementById("chatMessages");
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const microBtn = document.getElementById("microBtn");
+const replyPreview = document.getElementById("replyPreview");
+const replyPreviewText = document.getElementById("replyPreviewText");
+const cancelReply = document.getElementById("cancelReply");
+const mentionList = document.getElementById("mentionList");
+const aiHint = document.getElementById("aiCommandHint");
+const chatPageContainer = document.getElementById("chatPageContainer");
+
+socket.emit("join-group", groupId);
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+// Init burn timers
+document.querySelectorAll(".burn-timer").forEach(el => {
+  if (el.dataset.expires) startBurnTimer(el, el.dataset.expires);
+});
+
+// =============================================
+// INPUT HANDLING (skipped for read-only groups like Primes)
+// =============================================
+if (messageInput) {
+messageInput.addEventListener("input", function() {
+  const val = this.value;
+  const hasText = val.trim().length > 0;
+  microBtn.style.display = hasText ? "none" : "flex";
+  sendBtn.style.display = hasText ? "flex" : "none";
+
+  // IA hint
+  const cmds = {"/+":"🤖 IA Copilot","/imagine":"🎨 Génère une image","/edit":"✏️ Édite image (reply)","/sticker":"🎭 Sticker","/find":"🔍 Recherche","/burn":"🔥 Message éphémère","/summary":"📋 Résumé de la conv","/send":"💸 Transfert /send @pseudo montant","/roll":"🎲 Dés"};
+  let hint = null;
+  for (const [cmd,desc] of Object.entries(cmds)) { if (val.startsWith(cmd)){hint=desc;break;} }
+  if (hint){aiHint.textContent=hint;aiHint.style.display="block";}else{aiHint.style.display="none";}
+
+  // Mentions — autocomplete style Facebook
+  const curPos = this.selectionStart;
+  const textBefore = val.slice(0, curPos);
+  const atMatch = textBefore.match(/@(\w*)$/);
+  if (atMatch) {
+    const search = atMatch[1].toLowerCase();
+    const filtered = membres.filter(m => m.pseudo && m.pseudo.toLowerCase().startsWith(search) && m.id !== currentUserId);
+    if (filtered.length) {
+      mentionList.innerHTML = filtered.slice(0, 7).map(m => {
+        const initiale = (m.pseudo || "?")[0].toUpperCase();
+        return `<div class="mention-item" data-pseudo="${m.pseudo}" style="padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.12s;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">${initiale}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">@${m.pseudo}</div>
+          </div>
+        </div>`;
+      }).join("");
+      mentionList.style.cssText = "display:block;position:absolute;bottom:calc(100% + 8px);left:0;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;z-index:9999;max-height:260px;overflow-y:auto;box-shadow:0 -6px 24px rgba(0,0,0,0.2);";
+    } else { mentionList.style.display = "none"; }
+  } else { mentionList.style.display = "none"; }
+});
+
+mentionList.addEventListener("click", e => {
+  const item = e.target.closest(".mention-item"); if (!item) return;
+  const pseudo = item.dataset.pseudo;
+  const curPos = messageInput.selectionStart;
+  const textBefore = messageInput.value.slice(0, curPos);
+  const textAfter = messageInput.value.slice(curPos);
+  const replaced = textBefore.replace(/@(\w*)$/, "@" + pseudo + " ");
+  messageInput.value = replaced + textAfter;
+  const newPos = replaced.length;
+  mentionList.style.display = "none";
+  messageInput.focus();
+  messageInput.setSelectionRange(newPos, newPos);
+});
+
+// Hover mention items
+mentionList.addEventListener("mouseover", e => {
+  const item = e.target.closest(".mention-item"); if (!item) return;
+  mentionList.querySelectorAll(".mention-item").forEach(i => i.style.background = "transparent");
+  item.style.background = "var(--bg-secondary)";
+});
+mentionList.addEventListener("mouseleave", () => {
+  mentionList.querySelectorAll(".mention-item").forEach(i => i.style.background = "transparent");
+});
+
+// Clavier : Échap ferme la liste
+messageInput.addEventListener("keydown", e => {
+  if (e.key === "Escape" && mentionList.style.display !== "none") {
+    mentionList.style.display = "none"; e.stopPropagation();
+  }
+});
+
+// =============================================
+// SEND
+// =============================================
+function sendMessage() {
+  const contenu = messageInput.value.trim(); if (!contenu) return;
+  messageInput.value = ""; microBtn.style.display="flex"; sendBtn.style.display="none";
+  aiHint.style.display = "none";
+  socket.emit("send-group-message", { from:currentUserId, groupId, contenu, repondA: replyingTo?.messageId||null, type:"text" });
+  cancelReplyAction();
+}
+sendBtn.addEventListener("click", sendMessage);
+chatForm.addEventListener("submit", e => { e.preventDefault(); sendMessage(); });
+document.getElementById("chatForm").addEventListener("keydown", e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();} });
+
+// =============================================
+// PHOTO
+// =============================================
+document.getElementById("photoBtn").addEventListener("click", () => document.getElementById("photoInput").click());
+document.getElementById("photoInput").addEventListener("change", async function(e) {
+  const file = e.target.files[0]; if (!file) return;
+  if (file.size > 5*1024*1024){alert("5 Mo max.");return;}
+  const fd = new FormData(); fd.append("image",file); fd.append("groupId",groupId);
+  const res = await fetch("/messages/photo",{method:"POST",body:fd});
+  const data = await res.json(); if (!data.success) alert(data.error);
+  this.value = "";
+});
+
+// =============================================
+// AUDIO (WhatsApp style)
+// =============================================
+const recordingBar = document.getElementById("recordingBar");
+const waTimerEl = document.getElementById("waTimer");
+let pendingAudioBlob = null, pendingAudioDuration = 0, waStream = null;
+
+function showRecordingBar() {
+  document.getElementById("chatForm").style.display = "none";
+  recordingBar.style.display = "flex";
+  waTimerEl.textContent = "0:00";
+}
+function hideRecordingBar() {
+  recordingBar.style.display = "none";
+  document.getElementById("chatForm").style.display = "flex";
+}
+
+microBtn.addEventListener("click", async function() {
+  if (isRecording) { mediaRecorder.stop(); return; }
+  try {
+    waStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRecorder = new MediaRecorder(waStream,{mimeType:"audio/webm"}); audioChunks=[]; recordingSeconds=0;
+    showRecordingBar();
+    recordingTimer = setInterval(()=>{recordingSeconds++;const m=Math.floor(recordingSeconds/60),s=String(recordingSeconds%60).padStart(2,'0');waTimerEl.textContent=m+":"+s;},1000);
+    mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+    mediaRecorder.onstop=()=>{clearInterval(recordingTimer);waStream?.getTracks().forEach(t=>t.stop());const blob=new Blob(audioChunks,{type:"audio/webm"});pendingAudioBlob=blob;pendingAudioDuration=recordingSeconds;isRecording=false;};
+    mediaRecorder.start(); isRecording=true;
+  } catch(e){alert("Impossible d'accéder au microphone.");}
+});
+
+document.getElementById("cancelRecordBtn").addEventListener("click",()=>{
+  if(mediaRecorder&&isRecording){isRecording=false;mediaRecorder.stop();}
+  clearInterval(recordingTimer); waStream?.getTracks().forEach(t=>t.stop());
+  pendingAudioBlob=null; pendingAudioDuration=0; hideRecordingBar();
+});
+
+document.getElementById("sendRecordBtn").addEventListener("click",()=>{
+  if(mediaRecorder&&isRecording){
+    mediaRecorder.onstop=()=>{clearInterval(recordingTimer);waStream?.getTracks().forEach(t=>t.stop());const blob=new Blob(audioChunks,{type:"audio/webm"});sendGroupAudio(blob,recordingSeconds);audioChunks=[];isRecording=false;pendingAudioBlob=null;hideRecordingBar();};
+    mediaRecorder.stop();
+  } else if(pendingAudioBlob){
+    sendGroupAudio(pendingAudioBlob,pendingAudioDuration);pendingAudioBlob=null;pendingAudioDuration=0;hideRecordingBar();
+  }
+});
+async function sendGroupAudio(blob,duration){
+  const fd=new FormData();fd.append("audio",blob,"audio.webm");fd.append("groupId",groupId);fd.append("duration",duration);
+  const res=await fetch("/messages/audio",{method:"POST",body:fd});
+  const data=await res.json();if(!data.success)console.error(data.error);
+}
+
+// =============================================
+// CODE SIGNING
+// =============================================
+document.getElementById("codeBtn").addEventListener("click", () => {
+  const code = prompt("Colle ton code à signer :");
+  if (!code || !code.trim()) return;
+  messageInput.value = "[CODE]\n" + code.trim();
+  microBtn.style.display="none"; sendBtn.style.display="flex";
+  messageInput.dataset.isCode = "true";
+  messageInput.focus();
+});
+} // end if(messageInput)
+
+// =============================================
+// CHAOS MODE
+// =============================================
+const chaosModeBtn = document.getElementById("chaosModeBtn");
+if (chaosModeBtn) {
+  chaosModeBtn.addEventListener("click", () => {
+    const mins = parseInt(prompt("Durée du Chaos Mode en minutes (1-60) :", "5"));
+    if (!mins || mins < 1 || mins > 60) return;
+    socket.emit("start-chaos-mode", { groupId, durationMinutes: mins });
+  });
+}
+const stopChaosBtn = document.getElementById("stopChaosBtn");
+if (stopChaosBtn) {
+  stopChaosBtn.addEventListener("click", () => { socket.emit("stop-chaos-mode", { groupId }); });
+}
+socket.on("chaos-mode-started", data => {
+  if (data.groupId !== groupId) return;
+  chaosMap = data.chaosMap; isChaosActive = true;
+  document.getElementById("chaosBanner").style.display = "flex";
+  let secs = data.durationMinutes * 60;
+  chaosTimer = setInterval(() => {
+    secs--;
+    const m=Math.floor(secs/60),s=String(secs%60).padStart(2,'0');
+    const el=document.getElementById("chaosCountdown"); if(el) el.textContent=`(${m}:${s})`;
+    if (secs<=0){clearInterval(chaosTimer);isChaosActive=false;document.getElementById("chaosBanner").style.display="none";}
+  },1000);
+});
+socket.on("chaos-mode-ended", data => {
+  if (data.groupId!==groupId) return;
+  isChaosActive=false; chaosMap={};
+  document.getElementById("chaosBanner").style.display="none";
+  clearInterval(chaosTimer);
+});
+
+// =============================================
+// VOICE ROOM
+// =============================================
+document.getElementById("voiceRoomBtn").addEventListener("click", () => {
+  const panel = document.getElementById("voiceRoomPanel");
+  panel.style.display = panel.style.display==="none" ? "block" : "none";
+  if (panel.style.display==="block") loadVoiceMembers();
+});
+async function loadVoiceMembers() {
+  const res = await fetch(`/api/groups/${groupId}/voice/members`);
+  const data = await res.json();
+  updateVoicePanel(data.members||[]);
+}
+function updateVoicePanel(members) {
+  document.getElementById("voiceRoomCount").textContent = members.length + " membre(s)";
+  document.getElementById("voiceRoomMembers").innerHTML = members.map(m =>
+    `<div class="voice-member"><img src="${m.photoProfil||m.photo||'https://ui-avatars.com/api/?name=?'}" alt=""><span>${m.nom||m.name||"?"}</span></div>`
+  ).join("");
+}
+document.getElementById("joinVoiceBtn").addEventListener("click", async () => {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const res = await fetch(`/api/groups/${groupId}/voice/join`,{method:"POST"});
+    const data = await res.json();
+    if(data.success){
+      inVoiceRoom=true;
+      document.getElementById("joinVoiceBtn").style.display="none";
+      document.getElementById("leaveVoiceBtn").style.display="inline-flex";
+      document.getElementById("localAudioStatus").style.display="block";
+      updateVoicePanel(data.members||[]);
+    }
+  } catch(e){alert("Impossible d'accéder au microphone.");}
+});
+document.getElementById("leaveVoiceBtn").addEventListener("click", async () => {
+  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
+  Object.values(peerConnections).forEach(pc=>pc.close());peerConnections={};
+  await fetch(`/api/groups/${groupId}/voice/leave`,{method:"POST"});
+  inVoiceRoom=false;
+  document.getElementById("joinVoiceBtn").style.display="inline-flex";
+  document.getElementById("leaveVoiceBtn").style.display="none";
+  document.getElementById("localAudioStatus").style.display="none";
+});
+socket.on("voice-room-update", data => {
+  if(data.groupId!==groupId) return;
+  loadVoiceMembers();
+  if(inVoiceRoom&&data.action==="join"&&data.userId!==currentUserId) initiateCall(data.userId);
+});
+socket.on("voice-offer", async data => {
+  if(!inVoiceRoom||!localStream) return;
+  const pc = createPeerConnection(data.from);
+  await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  socket.emit("voice-answer",{to:data.from,from:currentUserId,answer,groupId});
+});
+socket.on("voice-answer", async data => {
+  const pc=peerConnections[data.from]; if(pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+});
+socket.on("voice-ice", data => {
+  const pc=peerConnections[data.from]; if(pc) pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
+});
+function createPeerConnection(peerId){
+  const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
+  peerConnections[peerId]=pc;
+  if(localStream) localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  pc.onicecandidate=e=>{if(e.candidate)socket.emit("voice-ice",{to:peerId,candidate:e.candidate,groupId});};
+  pc.ontrack=e=>{const audio=document.createElement("audio");audio.srcObject=e.streams[0];audio.autoplay=true;document.body.appendChild(audio);};
+  return pc;
+}
+async function initiateCall(peerId){
+  const pc=createPeerConnection(peerId);
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  socket.emit("voice-offer",{to:peerId,from:currentUserId,offer,groupId});
+}
+
+// =============================================
+// WATCH PARTY — MODE DIRECT (tout le groupe voit)
+// =============================================
+let watchBlobUrl = null;
+
+// === Utilitaire : convertir URL en embed ===
+function getYoutubeEmbedUrl(url, startSeconds = 0) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
+      let videoId = u.hostname === "youtu.be" ? u.pathname.slice(1) : (u.searchParams.get("v") || (u.pathname.startsWith("/embed/") ? u.pathname.split("/embed/")[1] : null));
+      if (videoId) {
+        const start = startSeconds > 3 ? `&start=${Math.floor(startSeconds)}` : "";
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1${start}`;
+      }
+    }
+    if (u.hostname.includes("twitch.tv")) {
+      const ch = u.pathname.split("/").filter(Boolean)[0];
+      if (ch) return `https://player.twitch.tv/?channel=${ch}&parent=${location.hostname}&autoplay=true`;
+    }
+  } catch(e) {}
+  return null;
+}
+
+// === Charger une source dans le player ===
+function loadWatchSource(src, isLocalFile=false, startTime=0) {
+  const container = document.getElementById("watchPlayerContainer");
+  const iframe = document.getElementById("watchIframe");
+  const video = document.getElementById("watchVideo");
+  const status = document.getElementById("watchPartyStatus");
+  container.style.display = "block";
+  const embedUrl = getYoutubeEmbedUrl(src, startTime);
+  if (embedUrl && !isLocalFile) {
+    iframe.src = embedUrl;
+    iframe.style.display = "block";
+    video.style.display = "none";
+    video.src = "";
+    status.textContent = "📡 YouTube/Twitch — en direct avec tout le groupe";
+  } else {
+    video.src = src;
+    video.style.display = "block";
+    iframe.style.display = "none";
+    iframe.src = "";
+    if (startTime > 3) {
+      video.addEventListener("loadedmetadata", () => { video.currentTime = startTime; }, { once: true });
+    }
+    video.play().catch(()=>{});
+    status.textContent = isLocalFile ? "▶ Fichier local — visible uniquement pour toi" : "📡 Vidéo MP4 — en direct avec tout le groupe";
+  }
+  status.style.display = "block";
+}
+
+// === Fermer et tout nettoyer ===
+function closeWatchParty() {
+  document.getElementById("watchPartyPanel").style.display = "none";
+  const video = document.getElementById("watchVideo");
+  video.pause();
+  video.src = "";
+  document.getElementById("watchIframe").src = "";
+  document.getElementById("watchPlayerContainer").style.display = "none";
+  document.getElementById("watchPartyStatus").style.display = "none";
+  document.getElementById("watchUrlInput").value = "";
+  document.getElementById("watchFileName").textContent = "";
+  document.getElementById("watchFileInput").value = "";
+  document.getElementById("watchSyncWarning").style.display = "none";
+  if (watchBlobUrl) { URL.revokeObjectURL(watchBlobUrl); watchBlobUrl = null; }
+  socket.emit("watch-party-sync", { groupId, action: "end" });
+}
+
+document.getElementById("watchPartyBtn").addEventListener("click", () => {
+  const p = document.getElementById("watchPartyPanel");
+  p.style.display = p.style.display === "none" ? "block" : "none";
+});
+document.getElementById("closeWatchBtn").addEventListener("click", closeWatchParty);
+
+// === Charger depuis URL ===
+document.getElementById("watchLoadBtn").addEventListener("click", () => {
+  const url = document.getElementById("watchUrlInput").value.trim();
+  if (!url) return;
+  if (watchBlobUrl) { URL.revokeObjectURL(watchBlobUrl); watchBlobUrl = null; }
+  document.getElementById("watchSyncWarning").style.display = "none";
+  document.getElementById("watchFileName").textContent = "";
+  loadWatchSource(url, false);
+  socket.emit("watch-party-sync", { groupId, action: "load", url });
+});
+
+// === Upload d'un fichier local ===
+document.getElementById("watchFileInput").addEventListener("change", function() {
+  const file = this.files[0];
+  if (!file) return;
+  if (watchBlobUrl) { URL.revokeObjectURL(watchBlobUrl); watchBlobUrl = null; }
+  watchBlobUrl = URL.createObjectURL(file);
+  document.getElementById("watchFileName").textContent = file.name;
+  document.getElementById("watchUrlInput").value = "";
+  document.getElementById("watchSyncWarning").style.display = "block";
+  loadWatchSource(watchBlobUrl, true);
+});
+
+// === Synchronisation vidéo directe (MP4) — toujours en direct
+const watchVideo = document.getElementById("watchVideo");
+let watchSyncEnabled = true;
+watchVideo.addEventListener("play", () => {
+  if (!watchSyncEnabled || watchBlobUrl) return;
+  socket.emit("watch-party-sync", { groupId, action: "play", currentTime: watchVideo.currentTime });
+});
+watchVideo.addEventListener("pause", () => {
+  if (!watchSyncEnabled || watchBlobUrl) return;
+  socket.emit("watch-party-sync", { groupId, action: "pause", currentTime: watchVideo.currentTime });
+});
+watchVideo.addEventListener("seeked", () => {
+  if (watchBlobUrl) return;
+  socket.emit("watch-party-sync", { groupId, action: "seek", currentTime: watchVideo.currentTime });
+});
+
+// === Réception synchro depuis le groupe (ou serveur au join) ===
+socket.on("watch-party-sync", data => {
+  if (data.from === currentUserId) return;
+  if (data.action === "end") {
+    closeWatchParty();
+    return;
+  }
+  if (data.url && data.action === "load") {
+    document.getElementById("watchPartyPanel").style.display = "block";
+    document.getElementById("watchUrlInput").value = data.url;
+    const startAt = (data.currentTime && data.currentTime > 3) ? data.currentTime : 0;
+    loadWatchSource(data.url, false, startAt);
+  }
+  if (data.action === "play" && watchVideo.style.display !== "none") {
+    watchSyncEnabled = false;
+    watchVideo.currentTime = data.currentTime;
+    watchVideo.play().catch(()=>{}).finally(()=>{ watchSyncEnabled = true; });
+  }
+  if (data.action === "pause" && watchVideo.style.display !== "none") {
+    watchSyncEnabled = false;
+    watchVideo.currentTime = data.currentTime;
+    watchVideo.pause();
+    watchSyncEnabled = true;
+  }
+  if (data.action === "seek" && watchVideo.style.display !== "none") {
+    watchVideo.currentTime = data.currentTime;
+  }
+});
+
+// === Révoquer le blob si l'utilisateur quitte la page ===
+window.addEventListener("beforeunload", () => {
+  if (watchBlobUrl) URL.revokeObjectURL(watchBlobUrl);
+});
+
+
+// =============================================
+// SUBPROFILES
+// =============================================
+async function loadSubProfilePanel() {
+  const list = document.getElementById("subProfileList");
+  list.innerHTML = '<p style="padding:4px 0;color:var(--text-secondary);font-size:13px;">Chargement…</p>';
+  const res = await fetch("/api/subprofiles");
+  const data = await res.json();
+  if (!data.subProfiles || !data.subProfiles.length) {
+    list.innerHTML = `<div style="text-align:center;padding:16px 0;color:var(--text-muted);font-size:13px;">
+      <i class="fa-solid fa-mask" style="font-size:24px;opacity:.3;display:block;margin-bottom:8px;"></i>
+      Aucun profil anonyme.<br>Crée-en un depuis les paramètres.
+    </div>`;
+    return;
+  }
+  list.innerHTML = data.subProfiles.map(sp => {
+    const isActive = sp._id === activeSubProfile || sp.isActive;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;border:1.5px solid ${isActive ? 'var(--primary)' : 'var(--border)'};background:${isActive ? 'var(--primary-light)' : 'var(--card-bg)'};transition:all .2s;">
+      <img src="${sp.anonymousAvatarUrl}" alt="" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;object-fit:cover;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sp.anonymousUsername}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${isActive ? '🟢 Actif' : '⚪ Inactif'}</div>
+      </div>
+      <button data-id="${sp._id}" class="sp-toggle-btn" style="border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;background:${isActive ? 'var(--primary)' : 'var(--bg-secondary)'};color:${isActive ? '#fff' : 'var(--text-primary)'};">
+        ${isActive ? 'Désactiver' : 'Activer'}
+      </button>
+    </div>`;
+  }).join("");
+
+  list.querySelectorAll(".sp-toggle-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const r = await fetch(`/api/subprofiles/${btn.dataset.id}/activate`, { method: "POST" });
+      const d = await r.json();
+      if (d.success) {
+        activeSubProfile = d.active ? btn.dataset.id : null;
+        document.getElementById("subProfileBtn").style.color = activeSubProfile ? "var(--primary)" : "var(--text-secondary)";
+        loadSubProfilePanel();
+      }
+    });
+  });
+}
+
+document.getElementById("subProfileBtn").addEventListener("click", () => {
+  const p = document.getElementById("subProfilePanel");
+  if (p.style.display !== "none") { p.style.display = "none"; return; }
+  p.style.display = "block";
+  loadSubProfilePanel();
+});
+document.getElementById("closeSubProfileBtn").addEventListener("click", () => {
+  document.getElementById("subProfilePanel").style.display = "none";
+});
+
+// =============================================
+// SOCKET EVENTS
+// =============================================
+socket.on("new-group-message", data => {
+  if (data.groupId!==groupId) return;
+  const existing=chatMessages.querySelector(`.message-group-wrapper[data-id="${data._id}"]`);
+  if (!existing) appendGroupMessage(data);
+});
+
+socket.on("group-message-deleted", data => {
+  const wrapper=chatMessages.querySelector(`[data-id="${data.messageId}"]`);
+  if(!wrapper) return;
+  const bubble=wrapper.querySelector(".message-bubble");
+  if(bubble){
+    const isSent=wrapper.querySelector(".sent")!==null;
+    bubble.className=`message-bubble deleted-msg ${isSent?"sent":"received"}`;
+    bubble.innerHTML='<span class="deleted-text"><i class="fa-solid fa-ban"></i> Ce message a été supprimé</span>';
+  }
+  wrapper.querySelector(".message-toolbar")?.remove();
+  wrapper.querySelector(".emoji-picker")?.remove();
+});
+
+socket.on("message-reacted", data => {
+  if(data.groupId!==groupId) return;
+  const wrapper=chatMessages.querySelector(`.message-group-wrapper[data-id="${data.messageId}"]`);
+  if(!wrapper) return;
+  const rc=wrapper.querySelector(".message-reactions"); if(!rc) return;
+  const grouped={};data.reactions.forEach(r=>{grouped[r.emoji]=(grouped[r.emoji]||0)+1;});
+  rc.innerHTML=Object.entries(grouped).map(([e,c])=>`<span class="reaction-pill">${e} ${c}</span>`).join("");
+});
+
+// =============================================
+// CLICK DELEGATION
+// =============================================
+chatMessages.addEventListener("click", async e => {
+  const playBtn=e.target.closest(".play-btn");
+  if(playBtn){playAudio(playBtn.closest(".message-bubble.audio"));return;}
+
+  const reactBtn=e.target.closest(".react-btn");
+  if(reactBtn){
+    const w=reactBtn.closest(".message-group-wrapper");
+    document.querySelectorAll(".emoji-picker.active").forEach(p=>p.classList.remove("active"));
+    w.querySelector(".emoji-picker")?.classList.toggle("active"); return;
+  }
+  const emojiSpan=e.target.closest(".emoji-picker span");
+  if(emojiSpan){
+    const w=emojiSpan.closest(".message-group-wrapper");
+    const mid=w.dataset.id;const emoji=emojiSpan.dataset.emoji;
+    socket.emit("react-message",{messageId:mid,groupId,userId:currentUserId,emoji});
+    w.querySelector(".emoji-picker")?.classList.remove("active"); return;
+  }
+  const replyBtn=e.target.closest(".reply-btn");
+  if(replyBtn){
+    const w=replyBtn.closest(".message-group-wrapper");
+    const mid=w.dataset.id;const textEl=w.querySelector(".message-text");
+    const text=textEl?textEl.innerText:"";
+    replyingTo={messageId:mid,contenu:text};
+    replyPreviewText.innerText=text.length>60?text.slice(0,60)+"…":text;
+    replyPreview.style.display="flex";messageInput.focus(); return;
+  }
+  const deleteGroupBtn=e.target.closest(".delete-group-btn");
+  if(deleteGroupBtn){
+    if(!confirm("Supprimer ce message ?")) return;
+    const w=deleteGroupBtn.closest(".message-group-wrapper");
+    await fetch(`/api/messages/${w.dataset.id}/delete`,{method:"POST"}); return;
+  }
+  if(!e.target.closest(".emoji-picker")&&!e.target.closest(".react-btn")){
+    document.querySelectorAll(".emoji-picker.active").forEach(p=>p.classList.remove("active"));
+  }
+  if(!e.target.closest("#mentionList")&&!e.target.closest("#messageInput")){
+    mentionList.style.display="none";
+  }
+});
+
+cancelReply.addEventListener("click",cancelReplyAction);
+function cancelReplyAction(){replyingTo=null;replyPreview.style.display="none";}
+
+// =============================================
+// APPEND GROUP MESSAGE
+// =============================================
+function appendGroupMessage(data,isTemp=false){
+  const isOwn=(data.expediteur===currentUserId)||(data.expediteur&&data.expediteur._id===currentUserId);
+  const wrapper=document.createElement("div");
+  wrapper.className=`message-group-wrapper ${isOwn?"sent-wrapper":"received-wrapper"}`;wrapper.dataset.id=data._id;
+  if(isTemp) wrapper.dataset.temp="true";
+  let html="";
+
+  // Nom affiché (chaos/anon)
+  const isChaosName=isChaosActive&&chaosMap[isOwn?currentUserId:(data.expediteur?._id||data.expediteur)];
+  const displayName=isChaosActive&&isChaosName?chaosMap[data.expediteur?._id||data.expediteur]?.name:(data.pseudo||data.expediteur?.nom||"?");
+  const displayAvatar=data.anonymousAvatar||(isChaosActive&&isChaosName?chaosMap[data.expediteur?._id||data.expediteur]?.avatar:null);
+
+  if(!isOwn&&data.expediteur){
+    html+=`<div class="message-author">`;
+    if(displayAvatar) html+=`<img src="${displayAvatar}" style="width:18px;height:18px;border-radius:50%;margin-right:4px;" alt="">`;
+    html+=esc(displayName)+`</div>`;
+  }
+
+  if(data.image){
+    const isSticker=data.isSticker;
+    html+=`<div class="message-bubble ${isSticker?"sticker-bubble":"img-bubble"} ${isOwn?"sent":"received"}">
+      <div class="message-image">
+        <img src="${data.image}" alt="" class="${isSticker?"sticker-img":"chat-img"}">
+        ${!isSticker?`<a href="${data.image}" download class="img-download-btn" title="Télécharger"><i class="fa-solid fa-download"></i></a>`:""}
+      </div>
+    </div>`;
+  } else if(data.audio){
+    let dur="0:00";if(data.duration){const m=Math.floor(data.duration/60),s=String(Math.floor(data.duration%60)).padStart(2,'0');dur=m+":"+s;}
+    html+=`<div class="message-bubble audio ${isOwn?"sent":"received"}" data-audio="${data.audio}">
+      <div class="audio-wrapper"><button class="play-btn"><i class="fa-solid fa-play"></i></button>
+        <div class="waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <span class="duration">${dur}</span></div>
+      <audio class="audio-player" src="${data.audio}" preload="metadata"></audio>
+    </div>`;
+  } else {
+    const isBurn=data.expiresAt;
+    html+=`<div class="message-bubble ${isOwn?"sent":"received"} ${isBurn?"burn-msg":""}">`;
+    if(data.repondA){const rc=typeof data.repondA==="object"?(data.repondA.image?"[Image]":(data.repondA.contenu||"").slice(0,50)):(data.repondA||"").slice(0,50);html+=`<div class="reply-quote"><i class="fa-solid fa-reply"></i> ${esc(rc)}</div>`;}
+    html+=`<div class="message-text">${formatMentions(esc(data.contenu||""))}</div>`;
+    if(isBurn) html+=`<div class="burn-timer" data-expires="${data.expiresAt}">🔥 …</div>`;
+    html+=`</div>`;
+  }
+  html+=`<div class="message-reactions"></div>
+    <div class="message-toolbar">
+      <button class="toolbar-btn react-btn"><i class="fa-regular fa-face-smile"></i></button>
+      <button class="toolbar-btn reply-btn"><i class="fa-solid fa-reply"></i></button>
+      ${isOwn?'<button class="toolbar-btn delete-group-btn"><i class="fa-solid fa-trash"></i></button>':""}
+    </div>
+    <div class="emoji-picker"><span data-emoji="👍">👍</span><span data-emoji="❤️">❤️</span><span data-emoji="😂">😂</span><span data-emoji="😮">😮</span><span data-emoji="😢">😢</span><span data-emoji="🙏">🙏</span></div>`;
+
+  wrapper.innerHTML=html;
+  chatMessages.appendChild(wrapper);
+  chatMessages.scrollTop=chatMessages.scrollHeight;
+
+  // Burn timer
+  const burnEl=wrapper.querySelector(".burn-timer");
+  if(burnEl&&data.expiresAt) startBurnTimer(burnEl,data.expiresAt);
+}
+
+// =============================================
+// BURN TIMER
+// =============================================
+function startBurnTimer(el,expiresAt){
+  const interval=setInterval(()=>{
+    const rem=Math.max(0,Math.floor((new Date(expiresAt)-Date.now())/1000));
+    el.textContent=`🔥 ${rem}s`;if(rem<=0)clearInterval(interval);
+  },1000);
+}
+
+// =============================================
+// AUDIO PLAYER
+// =============================================
+function playAudio(element){
+  if(!element) return;
+  const player=element.querySelector(".audio-player");const btn=element.querySelector(".play-btn i");if(!player) return;
+  if(player.paused){
+    document.querySelectorAll(".audio-player").forEach(a=>{if(a!==player){a.pause();a.currentTime=0;const p=a.closest(".message-bubble.audio");if(p){p.classList.remove("playing");const b=p.querySelector(".play-btn i");if(b)b.className="fa-solid fa-play";}}});
+    player.play();element.classList.add("playing");if(btn)btn.className="fa-solid fa-pause";
+  }else{player.pause();element.classList.remove("playing");if(btn)btn.className="fa-solid fa-play";}
+  player.onended=()=>{element.classList.remove("playing");if(btn)btn.className="fa-solid fa-play";};
+}
+document.querySelectorAll(".message-bubble.audio .audio-player").forEach(a=>{
+  a.onloadedmetadata=function(){const el=a.closest(".message-bubble.audio")?.querySelector(".duration");if(el&&a.duration&&!isNaN(a.duration)){const m=Math.floor(a.duration/60),s=String(Math.floor(a.duration%60)).padStart(2,'0');el.textContent=m+":"+s;}};
+});
+
+function renderBadges(badges){if(!badges||!badges.length)return'';const cfg={verifie:{icon:"fa-check",label:"Vérifié",cls:"badge-verifie"},moderateur:{icon:"fa-shield",label:"Modérateur",cls:"badge-moderateur"},fondateur:{icon:"fa-star",label:"Membre fondateur",cls:"badge-fondateur"},premium:{icon:"fa-crown",label:"Premium",cls:"badge-premium"},staff:{icon:"fa-screwdriver-wrench",label:"Staff",cls:"badge-staff"}};let h='';badges.forEach(b=>{const c=cfg[b.type];if(!c)return;h+=`<span class="badge-tooltip" data-label="${c.label}"><span class="user-badge ${c.cls}"><i class="fa-solid ${c.icon}"></i></span></span>`;});return h;}
+function escapeHtml(str){const d=document.createElement("div");d.innerText=str||"";return d.innerHTML;}
+function esc(s){return escapeHtml(s);}
+function formatMentions(str){return str.replace(/@(\w+)/g,'<span class="mention">@$1</span>');}
+// === LIGHTBOX PHOTO ===
+(function(){
+  const lb=document.getElementById("photoLightbox");
+  const lbImg=document.getElementById("lightboxImg");
+  const lbDl=document.getElementById("lightboxDownload");
+  const lbClose=document.getElementById("lightboxClose");
+  if(!lb) return;
+  function openLightbox(src){
+    lbImg.src=src;
+    lbDl.href=src;
+    lbDl.download=src.split("/").pop().split("?")[0]||"photo.jpg";
+    lb.style.display="flex";
+  }
+  lbClose.addEventListener("click",()=>{lb.style.display="none";});
+  lb.addEventListener("click",e=>{if(e.target===lb)lb.style.display="none";});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")lb.style.display="none";});
+  chatMessages.addEventListener("click",e=>{
+    const img=e.target.closest(".chat-img:not(.sticker-img)");
+    if(img){e.stopPropagation();openLightbox(img.src);}
+  });
+})();
+
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".emoji-picker")&&!e.target.closest(".react-btn")){document.querySelectorAll(".emoji-picker.active").forEach(p=>p.classList.remove("active"));}
+  if(!e.target.closest("#mentionList")&&!e.target.closest("#messageInput")){const ml=document.getElementById("mentionList");if(ml)ml.style.display="none";}
+  if(!e.target.closest("#subProfilePanel")&&!e.target.closest("#subProfileBtn")){document.getElementById("subProfilePanel").style.display="none";}
+  if(!e.target.closest("#watchPartyPanel")&&!e.target.closest("#watchPartyBtn")){/* keep open */}
+  if(!e.target.closest("#voiceRoomPanel")&&!e.target.closest("#voiceRoomBtn")){/* keep open */}
+});
+
+<% if (group.systemGroupKey === 'primes') { %>
+// === CHARGEMENT TÂCHES JOURNALIÈRES ===
+(async function loadPrimesTasks(){
+  const container=document.getElementById("tasksContainer");
+  if(!container)return;
+  try{
+    const res=await fetch("/api/daily-tasks",{credentials:"same-origin"});
+    if(!res.ok){container.innerHTML=`<p style="text-align:center;color:var(--text-secondary)">Erreur ${res.status}</p>`;return;}
+    const data=await res.json();
+    if(!data.success||!data.tasks||!data.tasks.length){container.innerHTML='<p style="text-align:center;color:var(--text-secondary);font-size:13px;">Aucune tâche disponible pour aujourd\'hui.</p>';return;}
+    container.innerHTML="";
+    data.tasks.forEach(t=>{
+      const card=document.createElement("div");
+      card.className="task-card"+(t.done?" task-done":"");
+      card.dataset.id=t._id;
+      card.innerHTML=`
+        <div class="task-info">
+          <div class="task-title">${t.title}</div>
+          <div class="task-desc">${t.description}</div>
+        </div>
+        <span class="task-reward">+${t.reward} crédits</span>
+        <div class="task-actions">
+          ${t.done
+            ? '<span class="task-status-done">✅</span>'
+            : `<button class="btn-verify" onclick="verifyTask('${t._id}',this)">Vérifier</button>
+               <button class="btn-claim" onclick="claimTask('${t._id}',this)" style="display:none">Valider</button>`
+          }
+        </div>`;
+      container.appendChild(card);
+    });
+  }catch(e){container.innerHTML='<p style="color:red;text-align:center;font-size:12px;">Erreur de chargement des tâches</p>';}
+})();
+
+async function verifyTask(id,btn){
+  btn.disabled=true;btn.textContent="Vérification…";
+  try{
+    const res=await fetch(`/api/daily-tasks/${id}/verify`,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin"});
+    const data=await res.json();
+    if(data.already){btn.disabled=true;btn.textContent="Déjà réclamé";return;}
+    if(data.verified){
+      btn.textContent="✅ Validé";btn.disabled=true;
+      const card=btn.closest(".task-card");
+      const claimBtn=card.querySelector(".btn-claim");
+      if(claimBtn){claimBtn.style.display="inline-flex";}
+    }else{
+      btn.disabled=false;btn.textContent="Vérifier";
+      alert("❌ Tâche non accomplie. Complète-la d'abord !");
+    }
+  }catch(e){btn.disabled=false;btn.textContent="Vérifier";}
+}
+
+async function claimTask(id,btn){
+  btn.disabled=true;btn.textContent="…";
+  try{
+    const res=await fetch(`/api/daily-tasks/${id}/claim`,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin"});
+    const data=await res.json();
+    if(data.success){
+      const card=btn.closest(".task-card");
+      card.classList.add("task-done");
+      card.querySelector(".task-actions").innerHTML='<span class="task-status-done">✅</span>';
+    }else{btn.disabled=false;btn.textContent="Valider";}
+  }catch(e){btn.disabled=false;btn.textContent="Valider";}
+}
+
+// === CHARGEMENT PRIMES ACTIVES ===
+async function loadBounties(){
+  const c=document.getElementById("bountiesContainer");
+  if(!c)return;
+  try{
+    const res=await fetch("/api/bounties/active",{credentials:"same-origin"});
+    const data=await res.json();
+    if(!data.success||!data.bounties||!data.bounties.length){
+      c.innerHTML='<p style="text-align:center;color:var(--text-secondary);font-size:13px;">Aucune prime active pour le moment.</p>';return;
+    }
+    c.innerHTML="";
+    data.bounties.forEach(b=>{
+      const div=document.createElement("div");
+      div.className="bounty-mini-card";
+      const isAdmin=b.actionType==="custom_admin";
+      const creatorLabel=isAdmin?`<span style="background:rgba(139,92,246,0.15);color:#8b5cf6;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:4px;">ADMIN</span>`:"";
+      div.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+          <span style="font-size:12px;font-weight:700;color:var(--text-primary);">${b.title}${creatorLabel}</span>
+          <span style="font-size:12px;font-weight:700;color:#f59e0b;white-space:nowrap;">💰 ${b.rewardAmount}</span>
+        </div>
+        ${b.description?`<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${b.description}</div>`:""}
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">Par <strong>${b.creatorNom}</strong> • ${b.applicantsCount} candidat(s)</div>
+        ${!b.isOwn&&!b.alreadyApplied
+          ?`<button class="btn-accomplish-mini" data-id="${b._id}" style="width:100%;padding:6px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;font-size:12px;font-weight:600;">⚡ Accomplir</button>`
+          :b.alreadyApplied?'<span style="font-size:11px;color:#10b981;font-weight:600;">✅ Accompli</span>':b.isOwn?'<span style="font-size:11px;color:var(--text-secondary);">Ton offre</span>':''
+        }`;
+      c.appendChild(div);
+    });
+    c.querySelectorAll(".btn-accomplish-mini").forEach(btn=>{
+      btn.addEventListener("click",async()=>{
+        btn.disabled=true;btn.textContent="Vérification…";
+        try{
+          const r=await fetch(`/api/bounties/${btn.dataset.id}/accomplish`,{method:"POST",credentials:"same-origin"});
+          const d=await r.json();
+          if(d.ok){btn.textContent=`✅ +${d.reward} crédits`;btn.style.background="#10b981";}
+          else{btn.disabled=false;btn.textContent="⚡ Accomplir";alert("❌ "+d.reason);}
+        }catch(e){btn.disabled=false;btn.textContent="⚡ Accomplir";}
+      });
+    });
+  }catch(e){c.innerHTML='<p style="color:red;text-align:center;font-size:12px;">Erreur primes</p>';}
+}
+loadBounties();
+
+// === ADMIN : Créer une prime depuis le groupe ===
+<% if (isAdmin || isSiteAdmin) { %>
+const _createBtn=document.getElementById("createPrimeBtnGroup");
+const _adminForm=document.getElementById("adminBountyForm");
+if(_createBtn&&_adminForm){
+  _createBtn.addEventListener("click",()=>{
+    _adminForm.style.display=_adminForm.style.display==="none"?"block":"none";
+  });
+  document.getElementById("cancelAdminBounty").addEventListener("click",()=>{_adminForm.style.display="none";});
+  document.getElementById("submitAdminBounty").addEventListener("click",async()=>{
+    const customTitle=(document.getElementById("adminCustomTitle").value||"").trim();
+    const customDescription=(document.getElementById("adminCustomDesc").value||"").trim();
+    const rewardAmount=parseInt(document.getElementById("adminRewardAmount").value);
+    if(!customTitle)return alert("Le titre de l'offre est obligatoire.");
+    if(!rewardAmount||rewardAmount<1)return alert("Montant invalide.");
+    const sbtn=document.getElementById("submitAdminBounty");
+    sbtn.disabled=true;sbtn.textContent="Publication…";
+    try{
+      const r=await fetch("/api/bounties",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customTitle,customDescription,rewardAmount}),credentials:"same-origin"});
+      const d=await r.json();
+      sbtn.disabled=false;sbtn.textContent="Publier l'offre";
+      if(d.success){_adminForm.style.display="none";document.getElementById("adminCustomTitle").value="";document.getElementById("adminCustomDesc").value="";document.getElementById("adminRewardAmount").value="";loadBounties();}
+      else{alert(d.error);}
+    }catch(e){sbtn.disabled=false;sbtn.textContent="Publier l'offre";}
+  });
+}
+<% } %>
+
+// === FILIGRANE ANTI-CAPTURE ===
+(()=>{
+  const wm=document.createElement("div");
+  wm.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9997;overflow:hidden;opacity:0.028;user-select:none;display:flex;flex-direction:column;justify-content:space-around;";
+  const uid="<%= user._id %>";
+  const txt=Array(6).fill(`SocialApp Confidentiel ${uid}`).join("   ");
+  for(let i=0;i<18;i++){
+    const row=document.createElement("div");
+    row.textContent=txt;
+    row.style.cssText=`white-space:nowrap;font-size:12px;transform:rotate(-18deg) translateX(-${10+(i%4)*8}%);color:var(--text-primary);letter-spacing:3px;`;
+    wm.appendChild(row);
+  }
+  document.body.appendChild(wm);
+})();
+<% } %>
+</script>
+</body>
+</html>

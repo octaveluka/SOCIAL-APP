@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'profile' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'profile' }) %>
+
+        <main class="feed">
+
+            <% if (success && success.length > 0) { %>
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span><%= success[0] %></span>
+                </div>
+            <% } %>
+
+            <% if (error && error.length > 0) { %>
+                <div class="alert alert-error">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span><%= error[0] %></span>
+                </div>
+            <% } %>
+
+            <!-- En-tête du profil -->
+            <div class="card profile-header" style="position:relative;">
+                <% if (isOwnProfile) { %>
+                <a href="/settings" class="ajax-link" title="Paramètres" style="position:absolute;top:14px;right:14px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;text-decoration:none;backdrop-filter:blur(4px);transition:background .2s;" onmouseover="this.style.background='rgba(0,0,0,.55)'" onmouseout="this.style.background='rgba(0,0,0,.35)'">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+                <% } %>
+                <div class="profile-cover" id="profileCoverBg" style="<%
+                    if (profileUser.profileCover) {
+                        const c = profileUser.profileCover;
+                        const isCss = c.startsWith('linear-gradient') || c.startsWith('radial-gradient');
+                        const isSolid = /^#[0-9a-fA-F]{3,6}$/.test(c);
+                        if (isCss || isSolid) { %>background:<%= c %>;background-color:transparent;<% }
+                        else { %>background-image:url(<%= c %>);background-size:cover;background-position:center;background-color:transparent;<% }
+                    }
+                %>">
+                    <% if (isOwnProfile) { %>
+                    <button onclick="openCoverPicker()" id="coverCameraBtn" title="Changer le fond">
+                        <i class="fa-solid fa-camera"></i>
+                    </button>
+                    <% } %>
+                </div>
+                <div class="profile-header-content">
+                    <!-- ===== AVATAR AVEC EFFET ===== -->
+                    <div class="<%= profileUser.profileEffect ? 'effect-' + profileUser.profileEffect : '' %>" style="display:inline-block; position:relative;">
+                        <img src="<%= profileUser.photoProfil %>"
+                             class="profile-avatar<%= profileUser.profileFrame ? ' frame-' + profileUser.profileFrame : '' %>"
+                             alt="">
+                    </div>
+                    <div class="profile-name">
+                        <%= profileUser.nom %>
+                        <%- include('partials/badges', { badges: profileUser.badges }) %>
+                    </div>
+                    <% if (profileUser.profileTitle) {
+                        const titleMap = {
+                            'Pro':     { key: 'pro',     icon: 'fa-briefcase' },
+                            'Expert':  { key: 'expert',  icon: 'fa-graduation-cap' },
+                            'VIP':     { key: 'vip',     icon: 'fa-crown' },
+                            'Élite':   { key: 'elite',   icon: 'fa-shield-halved' },
+                            'Légende': { key: 'legende', icon: 'fa-trophy' }
+                        };
+                        const tInfo = titleMap[profileUser.profileTitle] || { key: 'pro', icon: 'fa-star' };
+                    %>
+                    <div class="profile-title-badge badge-title-<%= tInfo.key %>">
+                        <i class="fa-solid <%= tInfo.icon %>"></i>
+                        <%= profileUser.profileTitle %>
+                    </div>
+                    <% } %>
+                    <% if (profileUser.bio) { %>
+                        <div class="profile-bio"><%= profileUser.bio %></div>
+                    <% } else { %>
+                        <div class="profile-bio" style="opacity:0.5;">Aucune bio renseignée</div>
+                    <% } %>
+
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <strong><%= posts.length %></strong>
+                            <span>Publications</span>
+                        </div>
+                        <div class="profile-stat">
+                            <strong><%= profileUser.amis.length %></strong>
+                            <span>Amis</span>
+                        </div>
+                        <div class="profile-stat">
+                            <strong id="followersCount"><%= profileUser.followers ? profileUser.followers.length : 0 %></strong>
+                            <span>Abonnés</span>
+                        </div>
+                        <% if (!isOwnProfile) { %>
+                            <div class="profile-stat">
+                                <strong><%= profileUser.following ? profileUser.following.length : 0 %></strong>
+                                <span>Abonnements</span>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        <% if (isOwnProfile) { %>
+                            <a href="/profile/edit/me" class="btn btn-secondary" style="width:auto; padding:10px 24px;">
+                                <i class="fa-solid fa-pen"></i> Modifier le profil
+                            </a>
+                        <% } else { %>
+                            <%# Bouton ami %>
+                            <% if (isFriend) { %>
+                                <form action="/friends/remove/<%= profileUser._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                                        <i class="fa-solid fa-user-check"></i> Amis
+                                    </button>
+                                </form>
+                                <a href="/messages/<%= profileUser._id %>" class="btn" style="width:auto; padding:10px 20px;">
+                                    <i class="fa-solid fa-comment"></i> Message
+                                </a>
+                            <% } else if (requestSent) { %>
+                                <form action="/friends/cancel/<%= profileUser._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                                        <i class="fa-solid fa-clock"></i> Annuler
+                                    </button>
+                                </form>
+                            <% } else if (requestReceived) { %>
+                                <form action="/friends/accept/<%= profileUser._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn" style="width:auto; padding:10px 20px;">
+                                        <i class="fa-solid fa-check"></i> Accepter
+                                    </button>
+                                </form>
+                            <% } else { %>
+                                <form action="/friends/request/<%= profileUser._id %>" method="POST" style="margin:0;">
+                                    <button type="submit" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                                        <i class="fa-solid fa-user-plus"></i> Ajouter
+                                    </button>
+                                </form>
+                            <% } %>
+
+                            <%# Bouton Suivre — indépendant du système d'amis %>
+                            <button id="followBtn"
+                                data-id="<%= profileUser._id %>"
+                                data-following="<%= isFollowing ? 'true' : 'false' %>"
+                                class="btn <%= isFollowing ? 'btn-secondary' : 'btn-primary' %>"
+                                style="width:auto; padding:10px 20px;">
+                                <% if (isFollowing) { %>
+                                    <i class="fa-solid fa-bell-slash"></i> Abonné
+                                <% } else { %>
+                                    <i class="fa-solid fa-bell"></i> Suivre
+                                <% } %>
+                            </button>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <% if (isOwnProfile) { %>
+            <div class="card" style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+                <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <i class="fa-solid fa-coins" style="font-size:20px; color:#f59e0b;"></i>
+                        <span style="font-size:17px; font-weight:700; color:#f59e0b;">
+                            <% if (profileUser.role === 'admin') { %>∞<% } else { %><%= profileUser.walletBalance || 0 %><% } %>
+                        </span>
+                        <span style="font-size:11px; color:var(--text-secondary);"><%= profileUser.role === 'admin' ? 'Illimité' : 'Crédits' %></span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <i class="fa-solid fa-star" style="font-size:20px; color:#8b5cf6;"></i>
+                        <span style="font-size:17px; font-weight:700; color:#8b5cf6;"><%= profileUser.xp || 0 %></span>
+                        <span style="font-size:11px; color:var(--text-secondary);">XP</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <a href="/wallet" class="btn btn-secondary" style="width:auto; padding:8px 18px; font-size:13px;">
+                        <i class="fa-solid fa-wallet"></i> Portefeuille
+                    </a>
+                    <a href="/shop" class="btn" style="width:auto; padding:8px 18px; font-size:13px;">
+                        <i class="fa-solid fa-store"></i> Boutique
+                    </a>
+                </div>
+            </div>
+
+            <% } %>
+
+            <!-- HISTORIQUE QUÊTES ORACLE -->
+            <% if (isOwnProfile) { %>
+            <div class="card" style="padding:16px 20px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                    <i class="fa-solid fa-brain" style="font-size:20px;color:#7c3aed;"></i>
+                    <div>
+                        <div style="font-size:14px;font-weight:700;">Quêtes Oracle — 7 derniers jours</div>
+                        <div style="font-size:12px;color:var(--text-secondary);">Ton historique de missions et streak</div>
+                    </div>
+                </div>
+                <div id="oracleHistoryList" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                    <span style="font-size:12px;color:var(--text-secondary);">Chargement…</span>
+                </div>
+                <style>
+                    .oh-day { display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px;padding:8px 6px;border-radius:10px;border:1px solid var(--border);font-size:11px;cursor:default;transition:.2s; }
+                    .oh-dot { font-size:20px;line-height:1; }
+                    .oh-lbl { font-weight:600;color:var(--text-secondary); }
+                    .oh-coins { font-size:10px;font-weight:700;color:#f59e0b; }
+                    .oh-day-done { background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border-color:#7c3aed44; }
+                    .oh-day-todo { background:rgba(34,197,94,.07);border-color:#22c55e55; }
+                    .oh-day-active { background:rgba(245,158,11,.07);border-color:#f59e0b55; }
+                    .oh-day-miss { opacity:.45; }
+                </style>
+            </div>
+            <% } %>
+
+            <!-- MA COLLECTION -->
+            <% if (isOwnProfile) {
+                const now = new Date();
+                const activeBadges = (profileUser.badges || []).filter(b => !b.expiresAt || new Date(b.expiresAt) > now);
+                const expiredBadges = (profileUser.badges || []).filter(b => b.expiresAt && new Date(b.expiresAt) <= now);
+                const hasCollection = activeBadges.length > 0 || expiredBadges.length > 0 || profileUser.profileTitle || profileUser.profileFrame || (profileUser.theme && profileUser.theme !== 'default') || profileUser.profileEffect;
+            %>
+            <div class="card" style="padding:16px 20px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                    <i class="fa-solid fa-box-open" style="font-size:20px;"></i>
+                    <div>
+                        <div style="font-size:14px;font-weight:700;">Ma Collection</div>
+                        <div style="font-size:12px;color:var(--text-secondary);">Tous tes cosmétiques actifs et expirés</div>
+                    </div>
+                </div>
+                <% if (!hasCollection) { %>
+                <div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:13px;">
+                    <i class="fa-solid fa-box-open" style="font-size:28px;margin-bottom:8px;display:block;opacity:0.4;"></i>
+                    Ta collection est vide — visite la <a href="/shop" style="color:var(--primary);">Boutique</a> pour obtenir des cosmétiques !
+                </div>
+                <% } else { %>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+
+                    <% if (profileUser.profileEffect) { %>
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);">
+                        <i class="fa-solid fa-sparkles" style="font-size:20px;color:var(--primary);"></i>
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:600;">Effet : <span style="text-transform:capitalize;color:var(--primary);">
+                                <% if (profileUser.profileEffect === 'sparkle') { %><i class="fa-solid fa-star-shooting"></i> Étincelles<% } %>
+                                <% if (profileUser.profileEffect === 'flame') { %><i class="fa-solid fa-fire"></i> Flammes<% } %>
+                                <% if (profileUser.profileEffect === 'star') { %><i class="fa-solid fa-star"></i> Étoiles<% } %>
+                                <% if (profileUser.profileEffect === 'diamond') { %><i class="fa-solid fa-gem"></i> Diamant<% } %>
+                                <% if (profileUser.profileEffect === 'butterfly') { %><i class="fa-solid fa-leaf"></i> Papillons<% } %>
+                            </span></div>
+                            <div style="font-size:11px;color:var(--text-secondary);">Animation autour de ton avatar</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;background:rgba(16,185,129,0.15);color:#10b981;padding:3px 8px;border-radius:20px;font-weight:600;"><i class="fa-solid fa-check"></i> Actif</span>
+                            <button onclick="unequipItem('profileEffect', this)" style="border:none;background:rgba(239,68,68,0.12);color:#ef4444;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-xmark"></i> Retirer</button>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <% if (profileUser.theme && profileUser.theme !== 'default') { %>
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);">
+                        <i class="fa-solid fa-palette" style="font-size:20px;"></i>
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:600;">Thème : <span style="text-transform:capitalize;color:var(--primary);"><%= profileUser.theme %></span></div>
+                            <div style="font-size:11px;color:var(--text-secondary);">Thème actif sur ton profil</div>
+                        </div>
+                        <span style="font-size:11px;background:rgba(16,185,129,0.15);color:#10b981;padding:3px 8px;border-radius:20px;font-weight:600;"><i class="fa-solid fa-check"></i> Actif</span>
+                    </div>
+                    <% } %>
+
+                    <% if (profileUser.profileTitle) { %>
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);">
+                        <i class="fa-solid fa-crown" style="font-size:20px;color:#f59e0b;"></i>
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:600;">Titre : <span style="color:var(--primary);"><%= profileUser.profileTitle %></span></div>
+                            <div style="font-size:11px;color:var(--text-secondary);">Affiché sous ton nom de profil</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;background:rgba(16,185,129,0.15);color:#10b981;padding:3px 8px;border-radius:20px;font-weight:600;"><i class="fa-solid fa-check"></i> Actif</span>
+                            <button onclick="unequipItem('profileTitle', this)" style="border:none;background:rgba(239,68,68,0.12);color:#ef4444;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-xmark"></i> Retirer</button>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <% if (profileUser.profileFrame) { %>
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);">
+                        <i class="fa-solid fa-image" style="font-size:20px;color:#6366f1;"></i>
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:600;">Cadre : <span style="text-transform:capitalize;color:var(--primary);"><%= profileUser.profileFrame %></span></div>
+                            <div style="font-size:11px;color:var(--text-secondary);">Cadre autour de ta photo de profil</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;background:rgba(16,185,129,0.15);color:#10b981;padding:3px 8px;border-radius:20px;font-weight:600;"><i class="fa-solid fa-check"></i> Actif</span>
+                            <button onclick="unequipItem('profileFrame', this)" style="border:none;background:rgba(239,68,68,0.12);color:#ef4444;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-xmark"></i> Retirer</button>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <% if (activeBadges.length > 0) { %>
+                    <div>
+                        <div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Badges actifs</div>
+                        <% activeBadges.forEach(badge => {
+                            const badgeIcons = { verifie: '<i class="fa-solid fa-circle-check" style="color:#3b82f6;"></i>', moderateur: '<i class="fa-solid fa-shield" style="color:#8b5cf6;"></i>', fondateur: '<i class="fa-solid fa-trophy" style="color:#f59e0b;"></i>', premium: '<i class="fa-solid fa-gem" style="color:#06b6d4;"></i>', staff: '<i class="fa-solid fa-star" style="color:#f59e0b;"></i>' };
+                            const daysLeft = badge.expiresAt ? Math.ceil((new Date(badge.expiresAt) - now) / (1000*60*60*24)) : null;
+                        %>
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);margin-bottom:6px;">
+                            <span style="font-size:20px;"><%- badgeIcons[badge.type] || '<i class="fa-solid fa-medal"></i>' %></span>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;text-transform:capitalize;"><%= badge.type %></div>
+                                <% if (badge.expiresAt) { %>
+                                <div style="font-size:11px;color:<%= daysLeft <= 3 ? '#f59e0b' : 'var(--text-secondary)' %>;">
+                                    <% if (daysLeft <= 3) { %><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Expire dans <%= daysLeft %> jour<%= daysLeft > 1 ? 's' : '' %> (<%= new Date(badge.expiresAt).toLocaleDateString('fr-FR') %>)<% } else { %>Expire le <%= new Date(badge.expiresAt).toLocaleDateString('fr-FR') %><% } %>
+                                </div>
+                                <% } else { %>
+                                <div style="font-size:11px;color:var(--text-secondary);">Badge permanent</div>
+                                <% } %>
+                            </div>
+                            <span style="font-size:11px;background:rgba(16,185,129,0.15);color:#10b981;padding:3px 8px;border-radius:20px;font-weight:600;">✓ Actif</span>
+                        </div>
+                        <% }) %>
+                    </div>
+                    <% } %>
+
+                    <% if (expiredBadges.length > 0) { %>
+                    <div>
+                        <div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Badges expirés</div>
+                        <% expiredBadges.forEach(badge => {
+                            const badgeIcons = { verifie: '<i class="fa-solid fa-circle-check" style="color:#3b82f6;"></i>', moderateur: '<i class="fa-solid fa-shield" style="color:#8b5cf6;"></i>', fondateur: '<i class="fa-solid fa-trophy" style="color:#f59e0b;"></i>', premium: '<i class="fa-solid fa-gem" style="color:#06b6d4;"></i>', staff: '<i class="fa-solid fa-star" style="color:#f59e0b;"></i>' };
+                        %>
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);margin-bottom:6px;opacity:0.6;">
+                            <span style="font-size:20px;filter:grayscale(1);"><%- badgeIcons[badge.type] || '<i class="fa-solid fa-medal"></i>' %></span>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;text-transform:capitalize;"><%= badge.type %></div>
+                                <div style="font-size:11px;color:var(--text-secondary);">Expiré le <%= new Date(badge.expiresAt).toLocaleDateString('fr-FR') %></div>
+                            </div>
+                            <a href="/shop" style="font-size:11px;background:var(--primary);color:#fff;padding:3px 10px;border-radius:20px;font-weight:600;text-decoration:none;">Renouveler</a>
+                        </div>
+                        <% }) %>
+                    </div>
+                    <% } %>
+
+                </div>
+                <% } %>
+            </div>
+            <% } %>
+
+            <!-- Publications -->
+            <% if (posts.length === 0) { %>
+                <div class="card empty-state">
+                    <i class="fa-solid fa-newspaper"></i>
+                    <p>Aucune publication pour le moment.</p>
+                </div>
+            <% } %>
+
+            <% posts.forEach(post => { %>
+                <div class="card post">
+                    <div class="post-header">
+                        <!-- ===== AVATAR DU POST AVEC EFFET ===== -->
+                        <div class="<%= post.auteur.profileEffect ? 'effect-' + post.auteur.profileEffect : '' %>" style="display:inline-block; position:relative;">
+                            <img src="<%= post.auteur.photoProfil %>" class="post-avatar" alt="">
+                        </div>
+                        <div>
+                            <div class="post-author">
+                                <%= post.auteur.nom %>
+                                <%- include('partials/badges', { badges: post.auteur.badges }) %>
+                            </div>
+                            <div class="post-date">
+                                <%= new Date(post.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <% if (post.contenu) { %>
+                        <div class="post-content"><%= post.contenu %></div>
+                    <% } %>
+
+                    <% if (post.image) { %>
+                        <img src="<%= post.image %>" class="post-image" alt="">
+                    <% } %>
+
+                    <% if (post.isShared && post.sharedFrom) { %>
+                        <div style="border:1.5px solid var(--border); border-radius:12px; padding:14px; margin-top:10px; background:var(--bg-secondary);">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <img src="<%= post.sharedFrom.auteur.photoProfil %>" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid var(--border);" alt="">
+                                <div>
+                                    <div style="font-weight:700; font-size:13px; color:var(--text-primary);"><%= post.sharedFrom.auteur.nom %></div>
+                                    <div style="font-size:11px; color:var(--text-muted);">
+                                        <%= new Date(post.sharedFrom.createdAt).toLocaleString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) %>
+                                    </div>
+                                </div>
+                            </div>
+                            <% if (post.sharedFrom.contenu) { %>
+                                <div style="font-size:13.5px; color:var(--text-secondary); line-height:1.5; white-space:pre-wrap;"><%= post.sharedFrom.contenu %></div>
+                            <% } %>
+                            <% if (post.sharedFrom.image) { %>
+                                <img src="<%= post.sharedFrom.image %>" style="width:100%; border-radius:8px; margin-top:8px; max-height:200px; object-fit:cover;" alt="">
+                            <% } %>
+                        </div>
+                    <% } %>
+
+                    <%
+                        const REACTION_EMOJIS = {heart:'❤️',haha:'😂',wow:'😮',sad:'😢',clap:'👏',grr:'😠'};
+                        const userReaction = (post.reactions || []).find(r => r.user && r.user.toString() === currentUserId);
+                        const userReactionType = userReaction ? userReaction.type : null;
+                        const hasReacted = userReactionType || post.likes.some(id => id.toString() === currentUserId);
+                        const totalReactions = post.likes.length;
+                        const reactionCounts = {};
+                        (post.reactions || []).forEach(r => { reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1; });
+                        const _topEmojis = Object.entries(reactionCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t])=>REACTION_EMOJIS[t]||'').join('');
+                    %>
+                    <div class="post-actions">
+                        <button class="like-btn <%= hasReacted ? 'liked' : '' %>"
+                                data-id="<%= post._id %>"
+                                data-reaction="<%= userReactionType || '' %>"
+                                title="J'aime">
+                            <% if (userReactionType) { %>
+                                <span class="reaction-emoji-display"><%= REACTION_EMOJIS[userReactionType] %></span>
+                            <% } else { %>
+                                <i class="fa-solid fa-heart"></i>
+                            <% } %>
+                            <span class="likes-count" data-reactions='<%= JSON.stringify(reactionCounts) %>'><% if(_topEmojis && totalReactions > 1){ %><span class="reaction-bubbles"><%= _topEmojis %></span><% } %><span class="reaction-total"><%= totalReactions || '' %></span></span>
+                        </button>
+
+                        <button onclick="toggleComments('<%= post._id %>')" title="Commentaires">
+                            <i class="fa-solid fa-comment"></i>
+                            <span class="comments-count"><%= post.commentaires.length %></span>
+                        </button>
+
+                        <button onclick="openShareModal('<%= post._id %>')" title="Partager">
+                            <i class="fa-solid fa-share-nodes"></i>
+                            <span class="shares-count"><%= post.sharesCount || 0 %></span>
+                        </button>
+
+                        <% if (post.auteur._id.toString() === currentUserId) { %>
+                            <form action="/post/<%= post._id %>/delete" method="POST" onsubmit="return confirm('Supprimer ce post ?')">
+                                <button type="submit" title="Supprimer">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        <% } %>
+                    </div>
+
+                    <div class="comments-section" id="comments-<%= post._id %>" style="display:none;">
+                        <div class="comments-list">
+                            <%
+                                const CEMOJI = {heart:'❤️',haha:'😂',wow:'😮',sad:'😢',clap:'👏',grr:'😠'};
+                                const cTopLevel = post.commentaires.filter(c => !c.replyTo || !c.replyTo.commentId);
+                                const cRepliesMap = {};
+                                post.commentaires.forEach(c => {
+                                    if (c.replyTo && c.replyTo.commentId) {
+                                        const pid = c.replyTo.commentId.toString();
+                                        if (!cRepliesMap[pid]) cRepliesMap[pid] = [];
+                                        cRepliesMap[pid].push(c);
+                                    }
+                                });
+                            %>
+                            <% cTopLevel.forEach(comment => { %>
+                                <%
+                                    const cUserReaction = (comment.reactions||[]).find(r=>r.user&&r.user.toString()===currentUserId);
+                                    const cUserReactionType = cUserReaction ? cUserReaction.type : null;
+                                    const cTotalLikes = (comment.likes||[]).length;
+                                    const cReplies = cRepliesMap[comment._id.toString()] || [];
+                                %>
+                                <div class="comment" data-comment-id="<%= comment._id %>" data-post-id="<%= post._id %>">
+                                    <a href="/profile/<%= comment.auteur._id %>" class="ajax-link">
+                                        <img src="<%= comment.auteur.photoProfil %>" class="comment-avatar" alt="">
+                                    </a>
+                                    <div class="comment-right">
+                                        <div class="comment-bubble">
+                                            <div class="comment-author">
+                                                <a href="/profile/<%= comment.auteur._id %>" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;"><%= comment.auteur.nom %></a>
+                                                <%- include('partials/badges', { badges: comment.auteur.badges || [] }) %>
+                                            </div>
+                                            <div class="comment-text"><%= comment.texte %></div>
+                                        </div>
+                                        <div class="comment-actions">
+                                            <button class="comment-like-btn <%= cUserReactionType ? 'liked' : '' %>"
+                                                    data-post="<%= post._id %>"
+                                                    data-comment="<%= comment._id %>"
+                                                    data-reaction="<%= cUserReactionType || '' %>">
+                                                <% if (cUserReactionType) { %><span class="c-reaction-emoji"><%= CEMOJI[cUserReactionType] %></span><% } else { %><i class="fa-regular fa-heart"></i><% } %>
+                                                <% if (cTotalLikes > 0) { %><span class="comment-likes-count"><%= cTotalLikes %></span><% } %>
+                                            </button>
+                                            <button class="comment-reply-btn"
+                                                    data-post="<%= post._id %>"
+                                                    data-comment-id="<%= comment._id %>"
+                                                    data-comment-author="<%= comment.auteur.nom %>"
+                                                    data-comment-author-id="<%= comment.auteur._id %>">Répondre</button>
+                                            <% if (cReplies.length > 0) { %>
+                                                <button class="show-replies-btn" data-comment="<%= comment._id %>">
+                                                    <i class="fa-solid fa-comment-dots"></i> <%= cReplies.length %> réponse<%= cReplies.length > 1 ? 's' : '' %>
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% if (cReplies.length > 0) { %>
+                                    <div class="replies-wrap" id="replies-<%= comment._id %>" style="display:none;">
+                                        <% cReplies.forEach(reply => { %>
+                                            <%
+                                                const rUserReaction = (reply.reactions||[]).find(r=>r.user&&r.user.toString()===currentUserId);
+                                                const rUserReactionType = rUserReaction ? rUserReaction.type : null;
+                                                const rTotalLikes = (reply.likes||[]).length;
+                                            %>
+                                            <div class="comment comment-reply-item" data-comment-id="<%= reply._id %>" data-post-id="<%= post._id %>">
+                                                <a href="/profile/<%= reply.auteur._id %>" class="ajax-link">
+                                                    <img src="<%= reply.auteur.photoProfil %>" class="comment-avatar" alt="">
+                                                </a>
+                                                <div class="comment-right">
+                                                    <div class="comment-bubble">
+                                                        <div class="comment-author">
+                                                            <a href="/profile/<%= reply.auteur._id %>" class="ajax-link" style="color:inherit;text-decoration:none;font-weight:inherit;"><%= reply.auteur.nom %></a>
+                                                            <%- include('partials/badges', { badges: reply.auteur.badges || [] }) %>
+                                                        </div>
+                                                        <% if (reply.replyTo && reply.replyTo.nom) { %><span class="comment-reply-tag">↩ @<%= reply.replyTo.nom %></span><% } %>
+                                                        <div class="comment-text"><%= reply.texte %></div>
+                                                    </div>
+                                                    <div class="comment-actions">
+                                                        <button class="comment-like-btn <%= rUserReactionType ? 'liked' : '' %>"
+                                                                data-post="<%= post._id %>"
+                                                                data-comment="<%= reply._id %>"
+                                                                data-reaction="<%= rUserReactionType || '' %>">
+                                                            <% if (rUserReactionType) { %><span class="c-reaction-emoji"><%= CEMOJI[rUserReactionType] %></span><% } else { %><i class="fa-regular fa-heart"></i><% } %>
+                                                            <% if (rTotalLikes > 0) { %><span class="comment-likes-count"><%= rTotalLikes %></span><% } %>
+                                                        </button>
+                                                        <button class="comment-reply-btn"
+                                                                data-post="<%= post._id %>"
+                                                                data-comment-id="<%= comment._id %>"
+                                                                data-comment-author="<%= reply.auteur.nom %>"
+                                                                data-comment-author-id="<%= reply.auteur._id %>">Répondre</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                <% } %>
+                            <% }) %>
+                        </div>
+                        <div class="comment-form-wrap">
+                            <div class="reply-indicator" style="display:none;">
+                                <span>↩ <strong class="reply-to-name"></strong></span>
+                                <button type="button" class="cancel-reply"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="mention-dropdown" style="display:none;"></div>
+                            <form class="comment-form ajax-comment-form" data-id="<%= post._id %>">
+                                <input type="text" name="texte" placeholder="Écrire un commentaire…" required autocomplete="off">
+                                <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+
+        </main>
+
+        <aside class="right-sidebar">
+            <h3 style="margin-bottom:12px; font-size:14px; color:var(--text-secondary);">INFORMATIONS</h3>
+            <p style="font-size:13px; color:var(--text-secondary); line-height:1.8;">
+                <i class="fa-solid fa-calendar"></i> Membre depuis <%= new Date(profileUser.createdAt).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) %><br>
+                <i class="fa-solid <%= profileUser.enLigne ? 'fa-circle' : 'fa-circle-o' %>" style="color: <%= profileUser.enLigne ? '#16a34a' : '#94a3b8' %>"></i>
+                <%= profileUser.enLigne ? 'En ligne' : 'Hors ligne' %>
+            </p>
+        </aside>
+    </div>
+
+    <script src="/js/feed.js?v=2"></script>
+    <script src="/js/oracle.js?v=4"></script>
+    <script>
+        // =============================================
+        // BOUTON SUIVRE
+        // =============================================
+        const followBtn = document.getElementById('followBtn')
+        if (followBtn) {
+            followBtn.addEventListener('click', async () => {
+                const id = followBtn.dataset.id
+                const isFollowing = followBtn.dataset.following === 'true'
+                followBtn.disabled = true
+                followBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'
+
+                const res = await fetch(`/profile/${id}/${isFollowing ? 'unfollow' : 'follow'}`, { method: 'POST' })
+                const data = await res.json()
+                followBtn.disabled = false
+
+                if (data.success) {
+                    const nowFollowing = data.following
+                    followBtn.dataset.following = nowFollowing ? 'true' : 'false'
+                    followBtn.className = `btn ${nowFollowing ? 'btn-secondary' : 'btn-primary'}`
+                    followBtn.style.cssText = 'width:auto; padding:10px 20px;'
+                    followBtn.innerHTML = nowFollowing
+                        ? '<i class="fa-solid fa-bell-slash"></i> Abonné'
+                        : '<i class="fa-solid fa-bell"></i> Suivre'
+                    const counter = document.getElementById('followersCount')
+                    if (counter && data.count !== undefined) counter.textContent = data.count
+                }
+            })
+        }
+
+        function toggleComments(postId) {
+            const el = document.getElementById('comments-' + postId)
+            el.style.display = el.style.display === 'none' ? 'block' : 'none'
+        }
+
+        async function unequipItem(field, btn) {
+            btn.disabled = true
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'
+            try {
+                const res = await fetch('/api/shop/unequip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ field })
+                })
+                const data = await res.json()
+                if (data.success) {
+                    const row = btn.closest('div[style*="border-radius:10px"]')
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s'
+                        row.style.opacity = '0'
+                        setTimeout(() => row.remove(), 300)
+                    }
+                    location.reload()
+                } else {
+                    btn.disabled = false
+                    btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Retirer'
+                }
+            } catch(e) {
+                btn.disabled = false
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Retirer'
+            }
+        }
+
+        // ===== COVER PICKER =====
+        const NATURE_IDS    = [10,15,20,28,29,37,39,40,43,56,57,61,65,66,75,76,84,85,92,95,100,101,102,103,106,108,111,112,114,116,117,119,120,128,131,142,143,145,152,153,162,163,165,167,168,172,174,175,177,188,190,192,193,195,198,203,204,206,207,208,209]
+        const VILLE_IDS     = [164,186,200,218,222,223,224,225,230,232,240,244,248,250,254,258,266,267,270,274,278,280,281,282,283,287,292,293,300,308,313,314,315,317,325,326,329,333,338,358,366,367,368,369,370,371,372,373]
+        const MER_IDS       = [231,327,342,357,374,375,376,378,379,384,387,392,398,399,400,401,407,412,416,417,418,420,421,424,430,479,480,481,482,483,484,485,486,487,488]
+        const ANIMAL_IDS    = [237,247,268,287,315,366,374,400,412,430,449,464,482,488,490,502,504,509,582,593,594,595,596,597,598,599,600,601,602,603]
+        const MONTAGNE_IDS  = [29,37,56,95,101,114,128,142,162,167,172,175,188,190,206,208,230,244,258,270,282,292,308,317,329,338,358,366,379,387,392,398]
+        const COUCHER_IDS   = [430,431,432,433,434,435,436,437,438,439,440,441,442,443,444,445,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460]
+        const ABSTRACT_IDS  = [1016,1019,1022,1025,1028,1031,1034,1037,1040,1043,1046,1049,1052,1055,1058,1061,1064,1067,1070,1073,1076,1079,1082,1084,700,701,702,703,704,705,706,707,708,709,710]
+
+        const GRADIENT_PRESETS = [
+            'linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#f093fb,#f5576c)',
+            'linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)',
+            'linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#a18cd1,#fbc2eb)',
+            'linear-gradient(135deg,#ffecd2,#fcb69f)','linear-gradient(135deg,#a1c4fd,#c2e9fb)',
+            'linear-gradient(135deg,#d4fc79,#96e6a1)','linear-gradient(135deg,#f6d365,#fda085)',
+            'linear-gradient(135deg,#89f7fe,#66a6ff)','linear-gradient(135deg,#e0c3fc,#8ec5fc)',
+            'linear-gradient(135deg,#f77062,#fe5196)','linear-gradient(135deg,#2193b0,#6dd5ed)',
+            'linear-gradient(135deg,#cc2b5e,#753a88)','linear-gradient(135deg,#ee0979,#ff6a00)',
+            'linear-gradient(135deg,#0f0c29,#302b63)','linear-gradient(135deg,#1a1a2e,#16213e)',
+            'linear-gradient(135deg,#ff9a9e,#fecfef)','linear-gradient(135deg,#96fbc4,#f9f586)',
+            'linear-gradient(135deg,#fbc2eb,#a6c1ee)','linear-gradient(135deg,#fddb92,#d1fdff)',
+            'linear-gradient(135deg,#a8edea,#fed6e3)','linear-gradient(135deg,#5ee7df,#b490ca)',
+            'linear-gradient(135deg,#d299c2,#fef9d7)','linear-gradient(135deg,#30cfd0,#330867)',
+            'linear-gradient(135deg,#f8ff00,#3ad59f)','linear-gradient(135deg,#c471f5,#fa71cd)',
+            'linear-gradient(135deg,#12c2e9,#c471ed,#f64f59)','linear-gradient(135deg,#f79d00,#64f38c)',
+            'linear-gradient(135deg,#4568dc,#b06ab3)','linear-gradient(135deg,#11998e,#38ef7d)',
+            'linear-gradient(135deg,#fc5c7d,#6a3093)','linear-gradient(135deg,#c94b4b,#4b134f)',
+            'linear-gradient(135deg,#42275a,#734b6d)','linear-gradient(135deg,#1f4037,#99f2c8)',
+            'linear-gradient(135deg,#373b44,#4286f4)','linear-gradient(135deg,#3a1c71,#d76d77,#ffaf7b)',
+            'linear-gradient(90deg,#667eea,#764ba2)','linear-gradient(90deg,#f093fb,#f5576c)',
+            'linear-gradient(90deg,#4facfe,#00f2fe)','linear-gradient(90deg,#43e97b,#38f9d7)',
+            'linear-gradient(90deg,#fa709a,#fee140)','linear-gradient(90deg,#a18cd1,#fbc2eb)',
+            'linear-gradient(90deg,#ffecd2,#fcb69f)','linear-gradient(90deg,#a1c4fd,#c2e9fb)',
+            'linear-gradient(90deg,#d4fc79,#96e6a1)','linear-gradient(90deg,#f6d365,#fda085)',
+            'linear-gradient(90deg,#89f7fe,#66a6ff)','linear-gradient(90deg,#e0c3fc,#8ec5fc)',
+            'linear-gradient(90deg,#f77062,#fe5196)','linear-gradient(90deg,#2193b0,#6dd5ed)',
+            'linear-gradient(90deg,#cc2b5e,#753a88)','linear-gradient(90deg,#ee0979,#ff6a00)',
+            'linear-gradient(90deg,#11998e,#38ef7d)','linear-gradient(90deg,#fc5c7d,#6a3093)',
+            'linear-gradient(90deg,#373b44,#4286f4)','linear-gradient(90deg,#3a1c71,#d76d77,#ffaf7b)',
+            'linear-gradient(45deg,#667eea,#764ba2)','linear-gradient(45deg,#f093fb,#f5576c)',
+            'linear-gradient(45deg,#4facfe,#00f2fe)','linear-gradient(45deg,#43e97b,#38f9d7)',
+            'linear-gradient(45deg,#fa709a,#fee140)','linear-gradient(45deg,#a18cd1,#fbc2eb)',
+            'linear-gradient(45deg,#ffecd2,#fcb69f)','linear-gradient(45deg,#a1c4fd,#c2e9fb)',
+            'linear-gradient(45deg,#d4fc79,#96e6a1)','linear-gradient(45deg,#f6d365,#fda085)',
+            'linear-gradient(45deg,#89f7fe,#66a6ff)','linear-gradient(45deg,#e0c3fc,#8ec5fc)',
+            'linear-gradient(45deg,#f77062,#fe5196)','linear-gradient(45deg,#2193b0,#6dd5ed)',
+            'linear-gradient(45deg,#cc2b5e,#753a88)','linear-gradient(45deg,#ee0979,#ff6a00)',
+            'linear-gradient(45deg,#11998e,#38ef7d)','linear-gradient(45deg,#fc5c7d,#6a3093)',
+            'linear-gradient(45deg,#373b44,#4286f4)','linear-gradient(45deg,#c94b4b,#4b134f)',
+            'linear-gradient(160deg,#667eea,#764ba2)','linear-gradient(160deg,#f093fb,#f5576c)',
+            'linear-gradient(160deg,#4facfe,#00f2fe)','linear-gradient(160deg,#43e97b,#38f9d7)',
+            'linear-gradient(160deg,#fa709a,#fee140)','linear-gradient(160deg,#a18cd1,#fbc2eb)',
+            'linear-gradient(160deg,#ffecd2,#fcb69f)','linear-gradient(160deg,#a1c4fd,#c2e9fb)',
+            'linear-gradient(160deg,#d4fc79,#96e6a1)','linear-gradient(160deg,#f6d365,#fda085)',
+            'linear-gradient(160deg,#89f7fe,#66a6ff)','linear-gradient(160deg,#e0c3fc,#8ec5fc)',
+            'linear-gradient(160deg,#11998e,#38ef7d)','linear-gradient(160deg,#3a1c71,#d76d77,#ffaf7b)',
+            'linear-gradient(135deg,#667eea,#764ba2,#f093fb)','linear-gradient(135deg,#4facfe,#00f2fe,#43e97b)',
+            'linear-gradient(135deg,#fa709a,#fee140,#f093fb)','linear-gradient(135deg,#89f7fe,#66a6ff,#764ba2)',
+            'linear-gradient(135deg,#ee0979,#ff6a00,#fee140)','linear-gradient(135deg,#f093fb,#f5576c,#fee140)',
+            'linear-gradient(135deg,#96fbc4,#f9f586,#fbc2eb)','linear-gradient(135deg,#43e97b,#38f9d7,#4facfe)',
+            'linear-gradient(135deg,#c471f5,#fa71cd,#f5576c)','linear-gradient(135deg,#30cfd0,#667eea,#764ba2)',
+            'radial-gradient(circle,#667eea,#764ba2)','radial-gradient(circle,#f093fb,#f5576c)',
+            'radial-gradient(circle,#4facfe,#00f2fe)','radial-gradient(circle,#43e97b,#38f9d7)',
+            'radial-gradient(circle,#fa709a,#fee140)','radial-gradient(circle,#a18cd1,#fbc2eb)',
+            'radial-gradient(circle,#89f7fe,#66a6ff)','radial-gradient(circle,#e0c3fc,#8ec5fc)',
+            'radial-gradient(ellipse at top,#667eea,#764ba2)','radial-gradient(ellipse at top,#4facfe,#00f2fe)',
+            'radial-gradient(ellipse at bottom,#fa709a,#fee140)','radial-gradient(ellipse at bottom,#f093fb,#f5576c)',
+            '#2c3e50','#34495e','#8e44ad','#2980b9','#27ae60','#e74c3c','#e67e22','#f39c12',
+            '#1abc9c','#3498db','#9b59b6','#e91e63','#673ab7','#3f51b5','#2196f3','#00bcd4',
+            '#009688','#4caf50','#8bc34a','#ffc107','#ff9800','#ff5722','#795548','#607d8b',
+            '#1a1a2e','#16213e','#0f3460','#533483','#e94560','#0d0d0d','#141414','#1e1e2e',
+            '#2d1b69','#11262d','#0a3d62','#1e3799','#6a89cc','#82ccdd','#b8e994','#f8c291',
+        ]
+
+        const ALL_PICSUM_IDS = Array.from({length: 1084}, (_, i) => i + 1)
+        let coverPage = 0
+        const PAGE_SIZE = 60
+
+        const COVER_TABS = [
+            { id: 'tous',      label: '✨ Tous',          ids: null },
+            { id: 'nature',    label: '🌿 Nature',         ids: NATURE_IDS },
+            { id: 'villes',    label: '🏙️ Villes',         ids: VILLE_IDS },
+            { id: 'mer',       label: '🌊 Mer',            ids: MER_IDS },
+            { id: 'montagne',  label: '🏔️ Montagne',       ids: MONTAGNE_IDS },
+            { id: 'animaux',   label: '🐾 Animaux',        ids: ANIMAL_IDS },
+            { id: 'coucher',   label: '🌅 Coucher de soleil', ids: COUCHER_IDS },
+            { id: 'abstract',  label: '🎨 Abstrait',       ids: ABSTRACT_IDS },
+            { id: 'degrade',   label: '🎨 Dégradés',       ids: 'gradients' },
+        ]
+
+        let activeCoverTab = 'tous'
+
+        function picsumThumb(id) { return `https://picsum.photos/id/${id}/320/120` }
+        function picsumFull(id)  { return `https://picsum.photos/id/${id}/1200/450` }
+
+        function coverItemHtml(value, isGradient) {
+            const esc = value.replace(/"/g, '&quot;')
+            if (isGradient) {
+                return `<div class="cv-item" style="background:${value}" onclick="selectCover('${esc}',this,true)" title="${value}"></div>`
+            }
+            return `<div class="cv-item cv-photo" onclick="selectCover('${esc}',this,false)">
+                        <img src="${value}" loading="lazy" alt="" onerror="this.closest('.cv-item').style.display='none'">
+                    </div>`
+        }
+
+        function renderCoverTab(tabId) {
+            activeCoverTab = tabId
+            coverPage = 0
+            const grid = document.getElementById('coverGrid')
+            const loadMoreBtn = document.getElementById('coverLoadMore')
+            const tab = COVER_TABS.find(t => t.id === tabId)
+
+            document.querySelectorAll('.cv-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId))
+
+            if (tab.ids === 'gradients') {
+                grid.innerHTML = GRADIENT_PRESETS.map(g => coverItemHtml(g, true)).join('')
+                loadMoreBtn.style.display = 'none'
+                return
+            }
+
+            const ids = tab.ids || ALL_PICSUM_IDS
+            const page = ids.slice(0, PAGE_SIZE)
+            grid.innerHTML = page.map(id => coverItemHtml(picsumThumb(id), false)).join('')
+            coverPage = 1
+            loadMoreBtn.style.display = ids.length > PAGE_SIZE ? 'flex' : 'none'
+            loadMoreBtn.dataset.source = tabId
+        }
+
+        function loadMoreCovers() {
+            const tab = COVER_TABS.find(t => t.id === activeCoverTab)
+            const ids = tab.ids || ALL_PICSUM_IDS
+            const page = ids.slice(coverPage * PAGE_SIZE, (coverPage + 1) * PAGE_SIZE)
+            if (!page.length) { document.getElementById('coverLoadMore').style.display = 'none'; return }
+            const grid = document.getElementById('coverGrid')
+            grid.insertAdjacentHTML('beforeend', page.map(id => coverItemHtml(picsumThumb(id), false)).join(''))
+            coverPage++
+            if ((coverPage) * PAGE_SIZE >= ids.length) document.getElementById('coverLoadMore').style.display = 'none'
+        }
+
+        async function selectCover(value, el, isGradient) {
+            document.querySelectorAll('.cv-item').forEach(t => t.classList.remove('selected'))
+            el.classList.add('selected')
+            const coverUrl = isGradient ? value : picsumFull(value.match(/\/id\/(\d+)\//)?.[1] || 1)
+            try {
+                const res = await fetch('/api/profile/cover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coverUrl })
+                })
+                const data = await res.json()
+                if (data.success) {
+                    const bg = document.getElementById('profileCoverBg')
+                    if (bg) {
+                        if (isGradient) {
+                            bg.style.backgroundImage = ''
+                            bg.style.background = coverUrl
+                        } else {
+                            bg.style.background = ''
+                            bg.style.backgroundImage = `url(${coverUrl})`
+                            bg.style.backgroundSize = 'cover'
+                            bg.style.backgroundPosition = 'center'
+                        }
+                        bg.style.backgroundColor = 'transparent'
+                    }
+                    setTimeout(() => closeCoverPicker(), 350)
+                }
+            } catch(e) {
+                el.classList.remove('selected')
+            }
+        }
+
+        function openCoverPicker() {
+            const modal = document.getElementById('coverPickerModal')
+            if (!modal) return
+            modal.style.display = 'flex'
+            document.body.style.overflow = 'hidden'
+            if (!modal.dataset.built) {
+                modal.dataset.built = '1'
+                renderCoverTab('tous')
+            }
+        }
+
+        function closeCoverPicker() {
+            const modal = document.getElementById('coverPickerModal')
+            if (modal) { modal.style.display = 'none'; document.body.style.overflow = '' }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('coverPickerModal')
+            if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeCoverPicker() })
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCoverPicker() })
+        })
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════
+         COVER PICKER MODAL — 1400+ fonds
+    ════════════════════════════════════════════════════ -->
+    <% if (isOwnProfile) { %>
+    <div id="coverPickerModal" style="
+        display:none; position:fixed; inset:0; z-index:9999;
+        background:rgba(0,0,0,0.65); backdrop-filter:blur(5px);
+        align-items:center; justify-content:center; padding:16px;
+    ">
+        <div style="
+            background:var(--card-bg); border-radius:20px;
+            width:100%; max-width:780px; max-height:88vh;
+            display:flex; flex-direction:column;
+            box-shadow:0 32px 80px rgba(0,0,0,0.4);
+            overflow:hidden;
+            animation:cpIn .25s cubic-bezier(.34,1.56,.64,1) both;
+        ">
+            <!-- Header -->
+            <div style="
+                display:flex; align-items:center; justify-content:space-between;
+                padding:20px 24px 14px; border-bottom:1px solid var(--border); flex-shrink:0;
+            ">
+                <div>
+                    <div style="font-size:17px; font-weight:700; color:var(--text-primary);">
+                        <i class="fa-solid fa-image" style="color:var(--primary); margin-right:8px;"></i>
+                        Choisir un fond
+                    </div>
+                    <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">
+                        1 400+ fonds disponibles — clique pour appliquer
+                    </div>
+                </div>
+                <button onclick="closeCoverPicker()" style="
+                    background:var(--background); border:none; border-radius:50%;
+                    width:36px; height:36px; cursor:pointer; font-size:16px;
+                    color:var(--text-muted); display:flex; align-items:center; justify-content:center;
+                    transition:background .15s;
+                " onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--background)'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div id="coverTabs" style="
+                display:flex; gap:6px; padding:12px 24px;
+                border-bottom:1px solid var(--border); flex-shrink:0;
+                overflow-x:auto; scrollbar-width:none;
+            ">
+                <% const coverTabDefs = [
+                    {id:'tous',     label:'✨ Tous'},
+                    {id:'nature',   label:'🌿 Nature'},
+                    {id:'villes',   label:'🏙️ Villes'},
+                    {id:'mer',      label:'🌊 Mer'},
+                    {id:'montagne', label:'🏔️ Montagne'},
+                    {id:'animaux',  label:'🐾 Animaux'},
+                    {id:'coucher',  label:'🌅 Coucher'},
+                    {id:'abstract', label:'🎨 Abstrait'},
+                    {id:'degrade',  label:'🌈 Dégradés'},
+                ]; %>
+                <% coverTabDefs.forEach(t => { %>
+                <button class="cv-tab<%= t.id === 'tous' ? ' active' : '' %>"
+                        data-tab="<%= t.id %>"
+                        onclick="renderCoverTab('<%= t.id %>')"><%= t.label %></button>
+                <% }) %>
+            </div>
+
+            <!-- Grid -->
+            <div id="coverGrid" style="
+                flex:1; min-height:0; overflow-y:auto; padding:16px 24px;
+                display:grid;
+                grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+                grid-auto-rows:64px;
+                gap:10px;
+                align-content:start;
+                scrollbar-width:thin;
+            ">
+                <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size:22px; display:block; margin-bottom:8px;"></i>
+                    Chargement...
+                </div>
+            </div>
+
+            <!-- Load more -->
+            <div style="padding:12px 24px; border-top:1px solid var(--border); flex-shrink:0; display:flex; justify-content:center;">
+                <button id="coverLoadMore" onclick="loadMoreCovers()" style="
+                    display:none; align-items:center; gap:6px;
+                    padding:9px 22px; border-radius:20px; font-size:13px; font-weight:600;
+                    border:1.5px solid var(--border); background:var(--background);
+                    color:var(--text-secondary); cursor:pointer; transition:all .15s;
+                " onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+                   onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">
+                    <i class="fa-solid fa-chevron-down"></i> Charger 60 de plus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    @keyframes cpIn {
+        from { opacity:0; transform:scale(.93) translateY(10px); }
+        to   { opacity:1; transform:scale(1) translateY(0); }
+    }
+    .cv-tab {
+        flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:13px;
+        font-weight:600; cursor:pointer; border:1.5px solid var(--border);
+        background:var(--background); color:var(--text-secondary);
+        white-space:nowrap; transition:all .15s;
+    }
+    .cv-tab:hover { border-color:var(--primary); color:var(--primary); }
+    .cv-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .cv-item {
+        border-radius:10px; overflow:hidden; cursor:pointer;
+        border:2.5px solid transparent; transition:all .15s;
+        position:relative; background:var(--background);
+    }
+    .cv-item:hover { border-color:var(--primary); transform:scale(1.04); z-index:1; }
+    .cv-item.selected { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-light); }
+    .cv-item.selected::after {
+        content:'✓'; position:absolute; top:4px; right:5px;
+        background:var(--primary); color:#fff; border-radius:50%;
+        width:18px; height:18px; font-size:10px; font-weight:700;
+        display:flex; align-items:center; justify-content:center; line-height:18px; text-align:center;
+    }
+    .cv-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+    #coverTabs::-webkit-scrollbar { display:none; }
+    #coverGrid::-webkit-scrollbar { width:4px; }
+    #coverGrid::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+    </style>
+    <% } %>
+
+<!-- ── Lightbox photo de profil ─────────────────────────────────── -->
+<div id="avatarLightbox" style="
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,0.88); backdrop-filter:blur(6px);
+    align-items:center; justify-content:center; cursor:zoom-out;
+" onclick="closeLightbox()">
+    <img id="avatarLightboxImg" src="" alt="" style="
+        max-width:90vw; max-height:90vh; border-radius:16px;
+        object-fit:contain; box-shadow:0 32px 80px rgba(0,0,0,0.6);
+        animation:lbIn .22s cubic-bezier(.34,1.56,.64,1) both;
+    ">
+    <button onclick="closeLightbox()" style="
+        position:fixed; top:20px; right:24px; background:rgba(255,255,255,0.12);
+        border:none; border-radius:50%; width:44px; height:44px; cursor:pointer;
+        font-size:20px; color:#fff; display:flex; align-items:center; justify-content:center;
+        transition:background .2s;
+    " onmouseover="this.style.background='rgba(255,255,255,0.22)'"
+       onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+</div>
+<style>
+    @keyframes lbIn {
+        from { opacity:0; transform:scale(.88); }
+        to   { opacity:1; transform:scale(1); }
+    }
+    .profile-avatar { cursor: zoom-in; }
+</style>
+<script>
+    function openLightbox(src) {
+        const lb = document.getElementById('avatarLightbox')
+        document.getElementById('avatarLightboxImg').src = src
+        lb.style.display = 'flex'
+        document.body.style.overflow = 'hidden'
+    }
+    function closeLightbox() {
+        document.getElementById('avatarLightbox').style.display = 'none'
+        document.body.style.overflow = ''
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox() })
+    document.querySelector('.profile-avatar')?.addEventListener('click', function() {
+        openLightbox(this.src)
+    })
+</script>
+</body>
+</html>

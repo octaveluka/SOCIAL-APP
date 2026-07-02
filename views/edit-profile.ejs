@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'profile' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'profile' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Modifier le profil</h1>
+                    <div class="subtitle">Mets à jour tes informations</div>
+                </div>
+                <a href="/profile/<%= profileUser._id %>" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                    <i class="fa-solid fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <% if (error && error.length > 0) { %>
+                <div class="alert alert-error">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span><%= error[0] %></span>
+                </div>
+            <% } %>
+
+            <div class="card">
+                <form action="/profile/edit" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="avatarUrl" id="avatarUrlInput">
+
+                    <!-- Photo de profil -->
+                    <div style="text-align:center; margin-bottom:28px;">
+                        <div style="position:relative; display:inline-block;">
+                            <img src="<%= profileUser.photoProfil %>" class="profile-avatar" alt="" id="avatarPreview"
+                                 style="width:100px; height:100px; margin-top:0; margin-bottom:0;">
+                            <label for="photoInput" style="
+                                position:absolute; bottom:0; right:0;
+                                width:34px; height:34px;
+                                background:var(--primary); color:#fff;
+                                border-radius:50%; display:flex; align-items:center;
+                                justify-content:center; cursor:pointer; font-size:14px;
+                                box-shadow:var(--shadow-md); border:3px solid var(--card-bg);
+                            ">
+                                <i class="fa-solid fa-camera"></i>
+                            </label>
+                            <input type="file" id="photoInput" name="photoProfil" accept="image/*" style="display:none">
+                        </div>
+                        <div style="margin-top:12px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                            <span style="font-size:13px; color:var(--text-secondary);">ou</span>
+                            <button type="button" onclick="openAvatarPicker()" style="
+                                display:inline-flex; align-items:center; gap:6px;
+                                padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600;
+                                border:1.5px solid var(--primary); background:var(--primary-light);
+                                color:var(--primary); cursor:pointer; transition:all .2s;
+                            " onmouseover="this.style.background='var(--primary)';this.style.color='#fff'"
+                               onmouseout="this.style.background='var(--primary-light)';this.style.color='var(--primary)'">
+                                <i class="fa-solid fa-face-smile"></i>
+                                Choisir un avatar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nom complet</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" name="nom" value="<%= profileUser.nom %>" required maxlength="30">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bio <span style="font-weight:400; color:var(--text-muted);">(optionnel)</span></label>
+                        <textarea name="bio" rows="3" maxlength="200"
+                                  placeholder="Parle un peu de toi..."><%= profileUser.bio %></textarea>
+                    </div>
+
+                    <!-- Notifications Push -->
+                    <div class="card" style="margin-top:0;">
+                        <div class="section-title">
+                            <i class="fa-solid fa-bell"></i>
+                            Notifications push
+                        </div>
+                        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px; line-height:1.6;">
+                            Reçois des notifications même quand SocialApp est fermé — messages, likes, demandes d'amis...
+                        </p>
+                        <button id="push-toggle-btn"
+                                style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; cursor:pointer; border:1px solid #c7d2fe; background:var(--primary-light); color:var(--primary);">
+                            <i class="fa-solid fa-bell"></i> Activer les notifications
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn">
+                        <i class="fa-solid fa-check"></i> Enregistrer les modifications
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+<!-- ═══════════════════════════════════════════════════════
+     AVATAR PICKER MODAL
+══════════════════════════════════════════════════════════ -->
+<div id="avatarPickerModal" style="
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center; padding:16px;
+" onclick="if(event.target===this)closeAvatarPicker()">
+
+    <div style="
+        background:var(--card-bg); border-radius:20px;
+        width:100%; max-width:680px; max-height:90vh;
+        display:flex; flex-direction:column;
+        box-shadow:0 32px 80px rgba(0,0,0,0.35);
+        overflow:hidden;
+        animation: apIn .25s cubic-bezier(.34,1.56,.64,1) both;
+    ">
+        <!-- Header -->
+        <div style="
+            display:flex; align-items:center; justify-content:space-between;
+            padding:20px 24px 16px; border-bottom:1px solid var(--border);
+            flex-shrink:0;
+        ">
+            <div>
+                <div style="font-size:17px; font-weight:700; color:var(--text-primary);">
+                    <i class="fa-solid fa-face-smile" style="color:var(--primary); margin-right:8px;"></i>
+                    Choisir un avatar
+                </div>
+                <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">
+                    <span id="avatarCount">1 200</span> avatars disponibles
+                </div>
+            </div>
+            <button onclick="closeAvatarPicker()" style="
+                background:var(--background); border:none; border-radius:50%;
+                width:36px; height:36px; cursor:pointer; font-size:16px;
+                color:var(--text-muted); display:flex; align-items:center; justify-content:center;
+                transition:background .15s;
+            " onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--background)'">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Style tabs -->
+        <div id="styleTabs" style="
+            display:flex; gap:6px; padding:12px 24px;
+            border-bottom:1px solid var(--border);
+            overflow-x:auto; flex-shrink:0;
+            scrollbar-width:none;
+        ">
+        </div>
+
+        <!-- Grid -->
+        <div id="avatarGrid" style="
+            flex:1; min-height:0; overflow-y:auto; padding:16px 24px;
+            display:grid;
+            grid-template-columns:repeat(auto-fill, minmax(80px, 1fr));
+            grid-auto-rows:80px;
+            gap:12px;
+            align-content:start;
+            scrollbar-width:thin;
+        ">
+            <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+                Chargement...
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="
+            padding:16px 24px; border-top:1px solid var(--border);
+            display:flex; align-items:center; justify-content:space-between;
+            flex-shrink:0; gap:12px;
+        ">
+            <div id="selectedPreview" style="display:flex; align-items:center; gap:10px;">
+                <img id="selectedImg" src="" alt="" style="
+                    width:44px; height:44px; border-radius:50%; object-fit:cover;
+                    border:2px solid var(--border); display:none;
+                ">
+                <span id="selectedLabel" style="font-size:13px; color:var(--text-muted);">
+                    Aucun avatar sélectionné
+                </span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button onclick="closeAvatarPicker()" class="btn btn-secondary" style="padding:10px 18px;">
+                    Annuler
+                </button>
+                <button onclick="confirmAvatar()" id="confirmBtn" class="btn" style="padding:10px 18px;" disabled>
+                    <i class="fa-solid fa-check"></i> Utiliser cet avatar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes apIn {
+    from { opacity:0; transform:scale(.93) translateY(12px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+}
+.av-tab {
+    flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:13px;
+    font-weight:600; cursor:pointer; border:1.5px solid var(--border);
+    background:var(--background); color:var(--text-secondary);
+    white-space:nowrap; transition:all .15s;
+}
+.av-tab:hover { border-color:var(--primary); color:var(--primary); }
+.av-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.av-item {
+    aspect-ratio:1; border-radius:14px; overflow:hidden;
+    cursor:pointer; border:2.5px solid transparent;
+    transition:all .15s; position:relative;
+    background:var(--background);
+}
+.av-item:hover { border-color:var(--primary); transform:scale(1.06); }
+.av-item.selected { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-light); }
+.av-item.selected::after {
+    content:'✓'; position:absolute; bottom:3px; right:4px;
+    background:var(--primary); color:#fff; border-radius:50%;
+    width:18px; height:18px; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    line-height:18px; text-align:center;
+}
+.av-item img { width:100%; height:100%; object-fit:cover; display:block; }
+#styleTabs::-webkit-scrollbar { display:none; }
+#avatarGrid::-webkit-scrollbar { width:4px; }
+#avatarGrid::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+
+<script>
+    // ── Gestion photo uploadée ─────────────────────────────────────
+    document.getElementById('photoInput').addEventListener('change', function(e) {
+        const file = e.target.files[0]
+        if (file) {
+            document.getElementById('avatarPreview').src = URL.createObjectURL(file)
+            document.getElementById('avatarUrlInput').value = ''
+        }
+    })
+
+    // ── Données du picker ──────────────────────────────────────────
+    const STYLES = [
+        { id:'all',          label:'✨ Tous' },
+        { id:'adventurer',   label:'🌿 Aventurier' },
+        { id:'notionists',   label:'💼 Notionists' },
+        { id:'micah',        label:'🎨 Micah' },
+        { id:'avataaars',    label:'😊 Avataaars' },
+        { id:'big-ears',     label:'👂 Big Ears' },
+        { id:'lorelei',      label:'🌸 Lorelei' },
+        { id:'pixel-art',    label:'🎮 Pixel Art' },
+        { id:'bottts',       label:'🤖 Robots' },
+        { id:'fun-emoji',    label:'😄 Émojis' },
+        { id:'croodles',     label:'✏️ Croodles' },
+        { id:'shapes',       label:'🔷 Formes' },
+        { id:'rings',        label:'💍 Anneaux' },
+    ]
+
+    const BG_COLORS = [
+        'b6e3f4','c0aede','d1d4f9','ffd5dc','ffdfbf',
+        'c1f4c5','f5d0a9','a9d7f5','f0c4f7','c4f0d4',
+        'f7e4c4','c4d4f0','e8d5f5','d5f5e8','f5e8d5',
+    ]
+
+    const SEEDS = [
+        'alex','blake','casey','dana','eden','finn','gray','harley','indie','jade',
+        'kai','leo','morgan','nova','ocean','pine','quinn','river','sage','teal',
+        'uma','vale','wren','xara','yale','zara','aria','beau','cleo','drew',
+        'emery','fox','glen','hope','iris','juno','kira','lark','milo','nell',
+        'onyx','pax','remy','skye','theo','ula','vex','wolf','xion','yuki',
+        'zion','ace','bay','chi','dex','eve','faye','gem','hex','ivy',
+        'jay','kat','lux','max','nyx','oak','pop','ray','sol','tex',
+        'vio','wax','zen','blue','coral','dusk','echo','frost','glow','haze',
+        'ion','jazz','kelp','lime','mint','neon','opal','plum','quill','rust',
+        'sand','tide','umber','void','wave','xenon','yarn','zest','amber','birch',
+        'cedar','dawn','elder','fern','grove','holly','isle','juniper','knoll','larch',
+        'maple','nettle','osier','palm','quince','rowan','sedge','talon','ulmus','vetch',
+    ]
+
+    const ALL_STYLE_IDS = STYLES.slice(1).map(s => s.id)
+    let currentStyle = 'all'
+    let selectedUrl = ''
+
+    function buildUrl(style, seed, bgIdx) {
+        const bg = BG_COLORS[bgIdx % BG_COLORS.length]
+        return `https://api.dicebear.com/9.x/${style}/png?seed=${seed}&size=120&backgroundColor=${bg}`
+    }
+
+    function getAvatars(styleId) {
+        if (styleId === 'all') {
+            const result = []
+            ALL_STYLE_IDS.forEach(style => {
+                SEEDS.slice(0, 10).forEach((seed, i) => {
+                    result.push({ url: buildUrl(style, seed, result.length), style, seed })
+                })
+            })
+            return result
+        }
+        return SEEDS.map((seed, i) => ({
+            url: buildUrl(styleId, seed, i),
+            style: styleId,
+            seed
+        }))
+    }
+
+    function renderTabs() {
+        const container = document.getElementById('styleTabs')
+        container.innerHTML = STYLES.map(s => `
+            <button class="av-tab${s.id === currentStyle ? ' active' : ''}"
+                    onclick="switchStyle('${s.id}')">${s.label}</button>
+        `).join('')
+    }
+
+    function renderGrid(styleId) {
+        const grid = document.getElementById('avatarGrid')
+        const avatars = getAvatars(styleId)
+        document.getElementById('avatarCount').textContent = (ALL_STYLE_IDS.length * SEEDS.length).toLocaleString('fr-FR')
+
+        grid.innerHTML = avatars.map(av => `
+            <div class="av-item${av.url === selectedUrl ? ' selected' : ''}"
+                 onclick="selectAvatar('${av.url}', this)" title="${av.style}">
+                <img src="${av.url}" loading="lazy" alt="">
+            </div>
+        `).join('')
+    }
+
+    function switchStyle(styleId) {
+        currentStyle = styleId
+        renderTabs()
+        renderGrid(styleId)
+        document.getElementById('avatarGrid').scrollTop = 0
+    }
+
+    function selectAvatar(url, el) {
+        document.querySelectorAll('.av-item').forEach(e => e.classList.remove('selected'))
+        el.classList.add('selected')
+        selectedUrl = url
+
+        const img = document.getElementById('selectedImg')
+        img.src = url
+        img.style.display = 'block'
+        document.getElementById('selectedLabel').textContent = 'Avatar sélectionné'
+        document.getElementById('selectedLabel').style.color = 'var(--primary)'
+        document.getElementById('confirmBtn').disabled = false
+    }
+
+    function confirmAvatar() {
+        if (!selectedUrl) return
+        document.getElementById('avatarPreview').src = selectedUrl
+        document.getElementById('avatarUrlInput').value = selectedUrl
+        document.getElementById('photoInput').value = ''
+        closeAvatarPicker()
+    }
+
+    function openAvatarPicker() {
+        selectedUrl = ''
+        document.getElementById('selectedImg').style.display = 'none'
+        document.getElementById('selectedLabel').textContent = 'Aucun avatar sélectionné'
+        document.getElementById('selectedLabel').style.color = 'var(--text-muted)'
+        document.getElementById('confirmBtn').disabled = true
+        renderTabs()
+        renderGrid('all')
+        const modal = document.getElementById('avatarPickerModal')
+        modal.style.display = 'flex'
+        document.body.style.overflow = 'hidden'
+    }
+
+    function closeAvatarPicker() {
+        document.getElementById('avatarPickerModal').style.display = 'none'
+        document.body.style.overflow = ''
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeAvatarPicker()
+    })
+</script>
+</body>
+</html>

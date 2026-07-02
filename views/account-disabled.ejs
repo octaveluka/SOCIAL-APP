@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compte désactivé — SocialApp</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--background); padding:24px;">
+        <div style="max-width:480px; width:100%; text-align:center;">
+            <div style="width:80px; height:80px; background:#fef3c7; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px;">
+                <i class="fa-solid fa-lock" style="font-size:32px; color:#d97706;"></i>
+            </div>
+            <h1 style="font-size:22px; font-weight:800; color:#111827; margin-bottom:12px;">
+                Compte désactivé
+            </h1>
+            <p style="color:#6b7280; font-size:14px; line-height:1.7; margin-bottom:20px;">
+                Votre compte a été temporairement désactivé par notre équipe de modération.
+            </p>
+            <% if (reason && reason !== "Non spécifié") { %>
+                <div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
+                    <div style="font-size:12px; font-weight:700; color:#d97706; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                        <i class="fa-solid fa-circle-exclamation"></i> Motif
+                    </div>
+                    <div style="font-size:14px; color:#78350f;">
+                        <%= reason %>
+                    </div>
+                </div>
+            <% } %>
+            <% if (contact) { %>
+                <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
+                    <div style="font-size:12px; font-weight:700; color:#16a34a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                        <i class="fa-solid fa-envelope"></i> Contact
+                    </div>
+                    <div style="font-size:14px; color:#14532d;">
+                        Veuillez contacter les administrateurs sur : <strong><%= contact %></strong>
+                    </div>
+                </div>
+            <% } %>
+            <p style="font-size:13px; color:#9ca3af;">
+                Si tu penses qu'il s'agit d'une erreur, contacte notre équipe de modération.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

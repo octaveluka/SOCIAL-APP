@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .admin-action-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .admin-action-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .admin-action-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        .admin-action-label {
+            font-weight: 700;
+            font-size: 14px;
+        }
+        .admin-action-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin: 0 auto 10px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            text-align: center;
+        }
+        .stat-box .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-box .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 14px;
+        }
+        .section-title i {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .page-header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .page-header .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'admin' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'admin' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Dashboard Admin</h1>
+                    <div class="subtitle">Vue d'ensemble de SocialApp</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <a href="/admin/users" class="btn" style="width:auto; padding:10px 20px;">
+                        <i class="fa-solid fa-users-gear"></i> Gérer les utilisateurs
+                    </a>
+                    <a href="/admin/analytics" class="btn" style="width:auto; padding:10px 20px; background:#7c3aed;">
+                        <i class="fa-solid fa-chart-simple"></i> Oracle Analytics
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats principales -->
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:var(--primary-light);">
+                        <i class="fa-solid fa-users" style="color:var(--primary);"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.totalUsers %></div>
+                    <div class="stat-label">Utilisateurs</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:#dcfce7;">
+                        <i class="fa-solid fa-circle" style="color:var(--success); font-size:14px;"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.onlineUsers %></div>
+                    <div class="stat-label">En ligne</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:#fee2e2;">
+                        <i class="fa-solid fa-ban" style="color:var(--error);"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.disabledUsers %></div>
+                    <div class="stat-label">Désactivés</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:#f5f3ff;">
+                        <i class="fa-solid fa-newspaper" style="color:#7c3aed;"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.totalPosts %></div>
+                    <div class="stat-label">Publications</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:#fef3c7;">
+                        <i class="fa-solid fa-people-group" style="color:var(--warning);"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.totalGroups %></div>
+                    <div class="stat-label">Groupes</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:#ecfeff;">
+                        <i class="fa-solid fa-comment-dots" style="color:var(--accent);"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.totalMessages %></div>
+                    <div class="stat-label">Messages</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background:#fef9c3;">
+                        <i class="fa-solid fa-coins" style="color:#ca8a04;"></i>
+                    </div>
+                    <div class="stat-value"><%= stats.totalCoins.toLocaleString('fr-FR') %></div>
+                    <div class="stat-label">Coins en circulation</div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-bolt"></i>
+                    Actions rapides
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+
+                    <a href="/admin/users" class="admin-action-card">
+                        <div class="admin-action-icon" style="background:var(--primary-light);">
+                            <i class="fa-solid fa-users-gear" style="color:var(--primary);"></i>
+                        </div>
+                        <div class="admin-action-label">Gérer les utilisateurs</div>
+                        <div class="admin-action-sub">Badges, rôles, restrictions</div>
+                    </a>
+
+                    <a href="/admin/users?q=" class="admin-action-card">
+                        <div class="admin-action-icon" style="background:#f0fdf4;">
+                            <i class="fa-solid fa-magnifying-glass" style="color:var(--success);"></i>
+                        </div>
+                        <div class="admin-action-label">Rechercher</div>
+                        <div class="admin-action-sub">Trouver un utilisateur</div>
+                    </a>
+
+                    <a href="/admin/assistant" class="admin-action-card">
+                        <div class="admin-action-icon" style="background:#f5f3ff;">
+                            <i class="fa-solid fa-robot" style="color:#7c3aed;"></i>
+                        </div>
+                        <div class="admin-action-label">Assistant IA</div>
+                        <div class="admin-action-sub">Gérer le bot assistant</div>
+                    </a>
+
+                    <!-- ✅ NOUVEAU : Oracle Analytics -->
+                    <a href="/admin/analytics" class="admin-action-card">
+                        <div class="admin-action-icon" style="background:#ede9fe;">
+                            <i class="fa-solid fa-chart-simple" style="color:#7c3aed;"></i>
+                        </div>
+                        <div class="admin-action-label">Oracle Analytics</div>
+                        <div class="admin-action-sub">Statistiques et classements</div>
+                    </a>
+
+                    <div class="admin-action-card" style="cursor:pointer;" onclick="document.getElementById('welcomeForm').submit()">
+                        <div class="admin-action-icon" style="background:#fef3c7;">
+                            <i class="fa-solid fa-envelope" style="color:var(--warning);"></i>
+                        </div>
+                        <div class="admin-action-label">Bienvenue</div>
+                        <div class="admin-action-sub">Envoyer à tous les membres</div>
+                        <form id="welcomeForm" action="/admin/welcome-campaign" method="POST" style="display:none;"></form>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Activité récente -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Taux d'activité
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div style="background:var(--background); border-radius:var(--radius-sm); padding:16px;">
+                        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+                            Taux de connexion
+                        </div>
+                        <div style="font-size:22px; font-weight:800; color:var(--primary);">
+                            <%= stats.totalUsers > 0 ? Math.round((stats.onlineUsers / stats.totalUsers) * 100) : 0 %>%
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            <%= stats.onlineUsers %> / <%= stats.totalUsers %> utilisateurs en ligne
+                        </div>
+                        <div style="margin-top:10px; height:6px; background:var(--border); border-radius:10px;">
+                            <div style="height:6px; background:var(--primary); border-radius:10px; width:<%= stats.totalUsers > 0 ? Math.round((stats.onlineUsers / stats.totalUsers) * 100) : 0 %>%;"></div>
+                        </div>
+                    </div>
+                    <div style="background:var(--background); border-radius:var(--radius-sm); padding:16px;">
+                        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+                            Taux de désactivation
+                        </div>
+                        <div style="font-size:22px; font-weight:800; color:var(--error);">
+                            <%= stats.totalUsers > 0 ? Math.round((stats.disabledUsers / stats.totalUsers) * 100) : 0 %>%
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            <%= stats.disabledUsers %> compte<%= stats.disabledUsers > 1 ? 's' : '' %> désactivé<%= stats.disabledUsers > 1 ? 's' : '' %>
+                        </div>
+                        <div style="margin-top:10px; height:6px; background:var(--border); border-radius:10px;">
+                            <div style="height:6px; background:var(--error); border-radius:10px; width:<%= stats.totalUsers > 0 ? Math.round((stats.disabledUsers / stats.totalUsers) * 100) : 0 %>%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>

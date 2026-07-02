@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+        .page-header h1 { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+        .page-header .subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+        .stat-card .stat-value { font-size: 28px; font-weight: 800; color: var(--primary); }
+        .stat-card .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .stat-card.danger .stat-value { color: #ef4444; }
+        .stat-card.warn .stat-value { color: #f59e0b; }
+        .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .events-table th { text-align: left; padding: 10px 12px; background: var(--card-bg); border-bottom: 2px solid var(--border); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+        .events-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .events-table tr:hover td { background: var(--hover-bg); }
+        .badge-type { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-type.failed_login { background: #fef3c7; color: #92400e; }
+        .badge-type.brute_force { background: #fee2e2; color: #991b1b; }
+        .badge-type.suspicious_access,
+        .badge-type.idor_attempt { background: #ede9fe; color: #5b21b6; }
+        .badge-type.invalid_objectid { background: #e0f2fe; color: #0369a1; }
+        .badge-type.socket_flood { background: #fce7f3; color: #9d174d; }
+        .badge-type.rate_limit_exceeded { background: #f0fdf4; color: #166534; }
+        .badge-type.invalid_password_reset { background: #fff7ed; color: #9a3412; }
+        .badge-type.unauthorized_media_access { background: #f5f3ff; color: #6d28d9; }
+        .ip-tag { font-family: monospace; font-size: 12px; background: var(--code-bg, #f3f4f6); padding: 2px 6px; border-radius: 4px; }
+        .no-events { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .alert-banner { background: linear-gradient(135deg, #fee2e2, #fef3c7); border: 1px solid #fca5a5; border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #7f1d1d; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite; flex-shrink: 0; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .back-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; margin-bottom: 16px; }
+        .back-btn:hover { opacity: .8; }
+        .section-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+        .section-card-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .section-card-header h2 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; }
+        .refresh-btn { padding: 6px 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body class="theme-<%= typeof session !== 'undefined' && session.user ? (session.user.theme || 'default') : 'default' %>">
+    <%- include('partials/sidebar') %>
+    <div class="main-content">
+        <%- include('partials/mobile-header') %>
+
+        <a href="/admin" class="back-btn">← Retour au Dashboard</a>
+
+        <div class="page-header">
+            <div>
+                <h1>🛡️ Système de Détection d'Intrusion</h1>
+                <p class="subtitle">Surveillance en temps réel des tentatives d'accès suspect</p>
+            </div>
+        </div>
+
+        <% if (stats.bruteForce > 0) { %>
+        <div class="alert-banner">
+            🚨 <span><%= stats.bruteForce %> attaque(s) brute-force détectée(s) — vérifiez les événements ci-dessous</span>
+        </div>
+        <% } %>
+
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-value"><%= stats.total %></div>
+                <div class="stat-label">Total événements</div>
+            </div>
+            <div class="stat-card warn">
+                <div class="stat-value"><%= stats.failedLogins %></div>
+                <div class="stat-label">Connexions échouées</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-value"><%= stats.bruteForce %></div>
+                <div class="stat-label">Attaques brute-force</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value"><%= stats.suspicious %></div>
+                <div class="stat-label">Activités suspectes</div>
+            </div>
+            <div class="stat-card warn">
+                <div class="stat-value"><%= stats.lastHour %></div>
+                <div class="stat-label">Dernière heure</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><span class="live-dot"></span>&nbsp;Événements récents (200 derniers)</h2>
+                <button class="refresh-btn" onclick="location.reload()">Actualiser</button>
+            </div>
+
+            <% if (events.length === 0) { %>
+                <div class="no-events">✅ Aucun événement de sécurité enregistré</div>
+            <% } else { %>
+            <div style="overflow-x:auto">
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>IP</th>
+                        <th>Email / Détails</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% events.forEach(ev => { %>
+                    <tr>
+                        <td><span class="badge-type <%= ev.type %>"><%= ev.type.replace(/_/g,' ') %></span></td>
+                        <td><span class="ip-tag"><%= ev.ip || '—' %></span></td>
+                        <td style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-secondary); font-size:12px;">
+                            <%= ev.details || ev.email || '—' %>
+                        </td>
+                        <td style="white-space:nowrap; color:var(--text-secondary); font-size:12px;">
+                            <%= new Date(ev.timestamp).toLocaleString('fr-FR') %>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+            </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        // Réception des alertes en temps réel via Socket.io
+        if (typeof notificationSocket !== 'undefined') {
+            notificationSocket.on('security-alert', function(data) {
+                const banner = document.createElement('div')
+                banner.className = 'alert-banner'
+                banner.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;max-width:400px;animation:slideIn .3s ease'
+                banner.innerHTML = `🚨 <span><strong>${data.type.replace(/_/g,' ')}</strong> — ${data.message}</span>`
+                document.body.appendChild(banner)
+                setTimeout(() => banner.remove(), 8000)
+            })
+        }
+    </script>
+    <%- include('partials/scripts') %>
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'messages' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'messages' }) %>
+
+        <main class="feed">
+
+            <div class="page-header">
+                <div>
+                    <h1>Paramètres du groupe</h1>
+                    <div class="subtitle"><%= group.nom %></div>
+                </div>
+                <a href="/groups/<%= group._id %>" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                    <i class="fa-solid fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <div id="toast" class="alert alert-success" style="display:none;">
+                <i class="fa-solid fa-circle-check"></i>
+                <span id="toastText"></span>
+            </div>
+
+            <div id="errorToast" class="alert alert-error" style="display:none;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorToastText"></span>
+            </div>
+
+            <!-- Photo du groupe -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-image"></i>
+                    Photo du groupe
+                </div>
+
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <div style="position:relative; display:inline-block;">
+                        <img src="<%= group.photo %>" alt="" id="groupPhotoPreview"
+                             style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--border);">
+                        <% if (isAdmin) { %>
+                            <label for="groupPhotoInput" style="
+                                position:absolute;
+                                bottom:0;
+                                right:0;
+                                width:28px;
+                                height:28px;
+                                background:var(--primary);
+                                color:#fff;
+                                border-radius:50%;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                cursor:pointer;
+                                font-size:12px;
+                                border:2px solid var(--card-bg);
+                            ">
+                                <i class="fa-solid fa-camera"></i>
+                            </label>
+                            <input type="file" id="groupPhotoInput" accept="image/*" style="display:none">
+                        <% } %>
+                    </div>
+                    <div>
+                        <div style="font-weight:700; font-size:16px;"><%= group.nom %></div>
+                        <div style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+                            <i class="fa-solid fa-users"></i> <span id="membersCountDisplay"><%= group.membres.length %></span> membre<%= group.membres.length > 1 ? 's' : '' %>
+                        </div>
+                        <% if (isAdmin) { %>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                                Clique sur l'icône pour changer la photo
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mon pseudo -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-id-badge"></i>
+                    Mon pseudo dans ce groupe
+                </div>
+
+                <form id="pseudoForm">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-pen"></i>
+                            <input type="text" name="pseudo"
+                                   placeholder="Ton pseudo (optionnel)"
+                                   value="<%= group.membres.find(m => m.user._id.toString() === currentUserId)?.pseudo || '' %>"
+                                   maxlength="30">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" style="margin-top:12px;">
+                        <i class="fa-solid fa-check"></i> Enregistrer le pseudo
+                    </button>
+                </form>
+            </div>
+
+            <!-- Lien d'invitation -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-link"></i>
+                    Lien d'invitation
+                </div>
+
+                <div style="
+                    background:var(--background);
+                    border:1.5px solid var(--border);
+                    border-radius:var(--radius-sm);
+                    padding:12px 16px;
+                    font-size:13px;
+                    font-family:monospace;
+                    color:var(--text-secondary);
+                    margin-bottom:12px;
+                    word-break:break-all;
+                " id="inviteLinkDisplay">
+                    <%= req.protocol %>://<%= req.get('host') %>/groups/join/<%= group.inviteCode %>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button onclick="copyLink()" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                        <i class="fa-solid fa-copy"></i> Copier le lien
+                    </button>
+                    <% if (isAdmin) { %>
+                        <button id="regenerateBtn" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                            <i class="fa-solid fa-rotate"></i> Régénérer
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Liste des membres -->
+            <div class="card">
+                <div class="section-title">
+                    <i class="fa-solid fa-user-group"></i>
+                    Membres (<span id="membersCount"><%= group.membres.length %></span>)
+                </div>
+
+                <div id="membersList">
+                    <% group.membres.forEach(m => { %>
+                        <div class="user-item" data-user-id="<%= m.user._id %>">
+                            <img src="<%= m.user.photoProfil %>" alt="">
+                            <div class="user-item-info">
+                                <div class="user-item-name">
+                                    <%= m.pseudo || m.user.nom %>
+                                    <%- include('partials/badges', { badges: m.user.badges || [] }) %>
+                                    <% if (group.createur.toString() === m.user._id.toString()) { %>
+                                        <span style="
+                                            font-size:11px;
+                                            background:var(--primary-light);
+                                            color:var(--primary);
+                                            padding:1px 8px;
+                                            border-radius:10px;
+                                            font-weight:700;
+                                            margin-left:6px;
+                                        ">Créateur</span>
+                                    <% } else if (m.isAdmin) { %>
+                                        <span class="role-tag" style="
+                                            font-size:11px;
+                                            background:var(--warning-light);
+                                            color:var(--warning);
+                                            padding:1px 8px;
+                                            border-radius:10px;
+                                            font-weight:700;
+                                            margin-left:6px;
+                                        ">Admin</span>
+                                    <% } else { %>
+                                        <span class="role-tag" style="display:none;
+                                            font-size:11px;
+                                            background:var(--warning-light);
+                                            color:var(--warning);
+                                            padding:1px 8px;
+                                            border-radius:10px;
+                                            font-weight:700;
+                                            margin-left:6px;
+                                        ">Admin</span>
+                                    <% } %>
+                                </div>
+                                <% if (m.pseudo) { %>
+                                    <div class="user-item-sub"><%= m.user.nom %></div>
+                                <% } %>
+                            </div>
+
+                            <% if (isAdmin && m.user._id.toString() !== currentUserId && group.createur.toString() !== m.user._id.toString()) { %>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn btn-secondary toggle-admin-btn"
+                                            data-user-id="<%= m.user._id %>"
+                                            style="width:auto; padding:7px 14px; font-size:12px;">
+                                        <%= m.isAdmin ? 'Retirer admin' : 'Rendre admin' %>
+                                    </button>
+                                    <button class="btn btn-danger kick-btn"
+                                            data-user-id="<%= m.user._id %>"
+                                            style="width:auto; padding:7px 12px; font-size:12px;">
+                                        <i class="fa-solid fa-user-minus"></i>
+                                    </button>
+                                </div>
+                            <% } %>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+
+            <!-- Quitter le groupe -->
+            <div class="card" style="border-color:var(--error-light);">
+                <div class="section-title" style="color:var(--error);">
+                    <i class="fa-solid fa-triangle-exclamation" style="background:var(--error-light); color:var(--error);"></i>
+                    Zone de danger
+                </div>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+                    En quittant le groupe, tu perdras l'accès à toutes les conversations.
+                    <% if (isCreator) { %>
+                        En tant que créateur, le rôle sera transféré à un autre admin.
+                    <% } %>
+                </p>
+                <button id="leaveBtn" class="btn btn-danger" style="width:auto; padding:10px 24px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Quitter le groupe
+                </button>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const groupId = "<%= group._id %>"
+        const host = "<%= req.protocol %>://<%= req.get('host') %>"
+
+        function showToast(message, isError = false) {
+            const toast = isError ? document.getElementById("errorToast") : document.getElementById("toast")
+            const text = isError ? document.getElementById("errorToastText") : document.getElementById("toastText")
+            text.innerText = message
+            toast.style.display = "flex"
+            setTimeout(() => { toast.style.display = "none" }, 3000)
+        }
+
+        function copyLink() {
+            const link = document.getElementById("inviteLinkDisplay").innerText.trim()
+            navigator.clipboard.writeText(link)
+            showToast("Lien copié !")
+        }
+
+        // === Photo du groupe ===
+        const groupPhotoInput = document.getElementById("groupPhotoInput")
+        if (groupPhotoInput) {
+            groupPhotoInput.addEventListener("change", async (e) => {
+                const file = e.target.files[0]
+                if (!file) return
+
+                document.getElementById("groupPhotoPreview").src = URL.createObjectURL(file)
+
+                const formData = new FormData()
+                formData.append("photo", file)
+
+                try {
+                    const res = await fetch(`/groups/${groupId}/photo`, {
+                        method: "POST",
+                        body: formData
+                    })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        showToast("Photo du groupe mise à jour !")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        }
+
+        // === Pseudo ===
+        document.getElementById("pseudoForm").addEventListener("submit", async (e) => {
+            e.preventDefault()
+            const pseudo = e.target.pseudo.value.trim()
+
+            try {
+                const res = await fetch(`/groups/${groupId}/pseudo`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pseudo })
+                })
+                const data = await res.json()
+
+                if (data.success) {
+                    showToast("Pseudo mis à jour !")
+                } else {
+                    showToast(data.error || "Erreur", true)
+                }
+            } catch (e) {
+                showToast("Erreur de connexion", true)
+            }
+        })
+
+        // === Toggle admin ===
+        document.querySelectorAll(".toggle-admin-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const userId = btn.getAttribute("data-user-id")
+
+                try {
+                    const res = await fetch(`/groups/${groupId}/toggle-admin/${userId}`, { method: "POST" })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const item = document.querySelector(`.user-item[data-user-id="${userId}"]`)
+                        const roleTag = item.querySelector(".role-tag")
+
+                        if (data.isAdmin) {
+                            roleTag.style.display = "inline"
+                            btn.innerText = "Retirer admin"
+                        } else {
+                            roleTag.style.display = "none"
+                            btn.innerText = "Rendre admin"
+                        }
+
+                        showToast("Statut mis à jour !")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // === Kick ===
+        document.querySelectorAll(".kick-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                if (!confirm("Exclure ce membre ?")) return
+
+                const userId = btn.getAttribute("data-user-id")
+
+                try {
+                    const res = await fetch(`/groups/${groupId}/kick/${userId}`, { method: "POST" })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const item = document.querySelector(`.user-item[data-user-id="${userId}"]`)
+                        item.remove()
+
+                        const countEl = document.getElementById("membersCount")
+                        const countEl2 = document.getElementById("membersCountDisplay")
+                        countEl.innerText = parseInt(countEl.innerText) - 1
+                        countEl2.innerText = parseInt(countEl2.innerText) - 1
+
+                        showToast("Membre exclu.")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        })
+
+        // === Régénérer le lien ===
+        const regenerateBtn = document.getElementById("regenerateBtn")
+        if (regenerateBtn) {
+            regenerateBtn.addEventListener("click", async () => {
+                if (!confirm("Régénérer le lien ? L'ancien ne fonctionnera plus.")) return
+
+                try {
+                    const res = await fetch(`/groups/${groupId}/regenerate-link`, { method: "POST" })
+                    const data = await res.json()
+
+                    if (data.success) {
+                        const newLink = `${host}/groups/join/${data.inviteCode}`
+                        document.getElementById("inviteLinkDisplay").innerText = newLink
+                        showToast("Lien régénéré !")
+                    } else {
+                        showToast(data.error || "Erreur", true)
+                    }
+                } catch (e) {
+                    showToast("Erreur de connexion", true)
+                }
+            })
+        }
+
+        // === Quitter le groupe ===
+        document.getElementById("leaveBtn").addEventListener("click", async () => {
+            if (!confirm("Es-tu sûr de vouloir quitter ce groupe ?")) return
+
+            try {
+                const res = await fetch(`/groups/${groupId}/leave`, { method: "POST" })
+                const data = await res.json()
+
+                if (data.success) {
+                    window.location.href = "/messages"
+                } else {
+                    showToast(data.error || "Erreur", true)
+                }
+            } catch (e) {
+                showToast("Erreur de connexion", true)
+            }
+        })
+    </script>
+</body>
+</html>

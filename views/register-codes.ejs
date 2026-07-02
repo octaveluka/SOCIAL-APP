@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-visual">
+            <div class="auth-visual-content">
+                <i class="fa-solid fa-key brand-icon"></i>
+                <h2>Codes de récupération</h2>
+                <p>Ces codes te permettent d'accéder à ton compte si tu oublies ton mot de passe et ta réponse secrète.</p>
+                <div class="auth-visual-features">
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                        <span>Sauvegarde-les maintenant — ils ne seront plus affichés</span>
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>Chaque code ne peut être utilisé qu'une seule fois</span>
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Tu pourras en générer de nouveaux dans tes paramètres</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-form-side">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                    <span>SocialApp</span>
+                </div>
+
+                <h2>Tes codes de récupération</h2>
+                <p class="auth-subtitle">Conserve-les dans un endroit sûr</p>
+
+                <div style="background:var(--primary-light); border:1.5px solid #c7d2fe; border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:20px; display:flex; align-items:flex-start; gap:10px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b; margin-top:2px; flex-shrink:0;"></i>
+                    <div style="font-size:13px; color:var(--text-primary); line-height:1.5;">
+                        <strong>Affichés une seule fois.</strong> Télécharge ou copie ces codes maintenant. Tu ne pourras plus les revoir.
+                    </div>
+                </div>
+
+                <div id="codesGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px;">
+                    <% codes.forEach((code, i) => { %>
+                        <div style="
+                            background:var(--card-bg);
+                            border:1px solid var(--border);
+                            border-radius:var(--radius-sm);
+                            padding:10px 12px;
+                            font-family:monospace;
+                            font-size:14px;
+                            font-weight:600;
+                            color:var(--text-primary);
+                            letter-spacing:1px;
+                            text-align:center;
+                            cursor:pointer;
+                            transition:background 0.2s;
+                        " onclick="copyCode(this, '<%= code %>')" title="Cliquer pour copier">
+                            <%= code %>
+                        </div>
+                    <% }) %>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-bottom:20px;">
+                    <button onclick="downloadCodes()" class="btn" style="flex:1; background:var(--primary);">
+                        <i class="fa-solid fa-download"></i>
+                        Télécharger
+                    </button>
+                    <button onclick="copyAllCodes()" class="btn btn-secondary" style="flex:1;">
+                        <i class="fa-solid fa-copy"></i>
+                        Tout copier
+                    </button>
+                </div>
+
+                <div id="copyFeedback" style="display:none; text-align:center; font-size:13px; color:#22c55e; margin-bottom:12px;">
+                    <i class="fa-solid fa-circle-check"></i> Copié !
+                </div>
+
+                <a href="/register/photo" class="btn" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    J'ai sauvegardé mes codes — Continuer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const codes = <%- JSON.stringify(codes) %>
+
+        function copyCode(el, code) {
+            navigator.clipboard.writeText(code).then(() => {
+                el.style.background = 'rgba(34,197,94,0.12)'
+                el.style.borderColor = '#22c55e'
+                setTimeout(() => {
+                    el.style.background = ''
+                    el.style.borderColor = ''
+                }, 1500)
+            })
+        }
+
+        function copyAllCodes() {
+            const text = codes.join('\n')
+            navigator.clipboard.writeText(text).then(() => {
+                const fb = document.getElementById('copyFeedback')
+                fb.style.display = 'block'
+                setTimeout(() => fb.style.display = 'none', 2000)
+            })
+        }
+
+        function downloadCodes() {
+            const content = [
+                'SocialApp — Codes de récupération',
+                '===================================',
+                'Générés le : ' + new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }),
+                '',
+                'Chaque code ne peut être utilisé qu\'une seule fois.',
+                'Conserve ce fichier dans un endroit sûr.',
+                '',
+                ...codes.map((c, i) => `${i + 1}. ${c}`)
+            ].join('\n')
+
+            const blob = new Blob([content], { type: 'text/plain; charset=utf-8' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'socialapp-codes-recuperation.txt'
+            a.click()
+            URL.revokeObjectURL(url)
+        }
+    </script>
+</body>
+</html>

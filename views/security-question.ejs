@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-visual">
+            <div class="auth-visual-content">
+                <i class="fa-solid fa-shield-halved brand-icon"></i>
+                <h2>Vérification de sécurité</h2>
+                <p>Réponds à ta question secrète pour prouver ton identité, ou utilise l'un de tes codes de récupération.</p>
+                <div class="auth-visual-features">
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>Seul toi connais la réponse</span>
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Ou utilise un code de récupération (usage unique)</span>
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-envelope-open-text" style="opacity:0.35;"></i>
+                        <span style="opacity:0.5;">Aucun email requis</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-form-side">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                    <span>SocialApp</span>
+                </div>
+
+                <h2>Vérification</h2>
+                <p class="auth-subtitle">Compte associé à <strong><%= email %></strong></p>
+
+                <% if (error && error.length > 0) { %>
+                    <div class="alert alert-error">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span><%= error[0] %></span>
+                    </div>
+                <% } %>
+
+                <!-- Tabs -->
+                <div style="display:flex; gap:0; border:1.5px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; margin-bottom:20px;">
+                    <button type="button" id="tabQuestion" onclick="showTab('question')" style="flex:1; padding:10px; font-size:13px; font-weight:600; border:none; cursor:pointer; background:var(--primary); color:#fff; transition:all 0.2s;">
+                        <i class="fa-solid fa-circle-question"></i> Question secrète
+                    </button>
+                    <button type="button" id="tabCode" onclick="showTab('code')" style="flex:1; padding:10px; font-size:13px; font-weight:600; border:none; cursor:pointer; background:var(--card-bg); color:var(--text-secondary); transition:all 0.2s;">
+                        <i class="fa-solid fa-key"></i> Code de récupération
+                    </button>
+                </div>
+
+                <form action="/security-question" method="POST">
+
+                    <!-- Onglet question -->
+                    <div id="panelQuestion">
+                        <div style="background:var(--primary-light); border:1.5px solid #c7d2fe; border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px;">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;">Ta question secrète</div>
+                            <div style="font-size:14px; color:var(--text-primary); font-weight:500;"><%= question %></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ta réponse</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-circle-question"></i>
+                                <input type="text" name="reponse" id="reponseInput" placeholder="Ta réponse secrète" autocomplete="off">
+                            </div>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
+                                <i class="fa-solid fa-circle-info"></i> Insensible à la casse
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onglet code -->
+                    <div id="panelCode" style="display:none;">
+                        <div style="background:rgba(245,158,11,0.08); border:1.5px solid rgba(245,158,11,0.3); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; font-size:13px; color:var(--text-secondary); line-height:1.5;">
+                            <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                            Chaque code ne peut être utilisé <strong>qu'une seule fois</strong>. Il sera supprimé après usage.
+                        </div>
+
+                        <div class="form-group">
+                            <label>Code de récupération</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-key"></i>
+                                <input type="text" name="recoveryCode" id="recoveryCodeInput" placeholder="XXXXXX-XXXXXX" autocomplete="off" style="font-family:monospace; letter-spacing:1px; text-transform:uppercase;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">
+                        <i class="fa-solid fa-check"></i>
+                        Vérifier
+                    </button>
+                </form>
+
+                <div class="auth-footer">
+                    <a href="/forgot-password">← Changer d'email</a>
+                    &nbsp;·&nbsp;
+                    <a href="/login">Connexion</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            const panelQ = document.getElementById('panelQuestion')
+            const panelC = document.getElementById('panelCode')
+            const tabQ = document.getElementById('tabQuestion')
+            const tabC = document.getElementById('tabCode')
+            const reponse = document.getElementById('reponseInput')
+            const recovery = document.getElementById('recoveryCodeInput')
+
+            if (tab === 'question') {
+                panelQ.style.display = 'block'
+                panelC.style.display = 'none'
+                tabQ.style.background = 'var(--primary)'
+                tabQ.style.color = '#fff'
+                tabC.style.background = 'var(--card-bg)'
+                tabC.style.color = 'var(--text-secondary)'
+                reponse.required = true
+                recovery.required = false
+                recovery.value = ''
+            } else {
+                panelQ.style.display = 'none'
+                panelC.style.display = 'block'
+                tabQ.style.background = 'var(--card-bg)'
+                tabQ.style.color = 'var(--text-secondary)'
+                tabC.style.background = 'var(--primary)'
+                tabC.style.color = '#fff'
+                reponse.required = false
+                reponse.value = ''
+                recovery.required = true
+            }
+        }
+    </script>
+</body>
+</html>

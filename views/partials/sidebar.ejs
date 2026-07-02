@@ -1,0 +1,43 @@
+<aside class="sidebar">
+    <a href="/" class="<%= currentPage === 'feed' ? 'active' : '' %>">
+        <i class="fa-solid fa-house"></i> Accueil
+    </a>
+    <a href="/profile/<%= user.id %>" class="<%= currentPage === 'profile' ? 'active' : '' %>">
+        <i class="fa-solid fa-user"></i> Mon profil
+    </a>
+    <a href="/friends" class="<%= currentPage === 'friends' ? 'active' : '' %>">
+        <i class="fa-solid fa-user-group"></i> Amis
+    </a>
+    <a href="/messages" class="<%= currentPage === 'messages' ? 'active' : '' %>">
+        <i class="fa-solid fa-comment-dots"></i> Messages
+    </a>
+    <a href="/notifications" class="<%= currentPage === 'notifications' ? 'active' : '' %>">
+        <i class="fa-solid fa-bell"></i> Notifications
+    </a>
+    <a href="/search" class="<%= currentPage === 'search' ? 'active' : '' %>">
+        <i class="fa-solid fa-magnifying-glass"></i> Rechercher
+    </a>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Économie</div>
+
+    <a href="/wallet" class="<%= currentPage === 'wallet' ? 'active' : '' %>">
+        <i class="fa-solid fa-wallet"></i> Portefeuille
+        <% if (locals.walletBalance !== undefined) { %>
+            <span class="sidebar-badge-wallet"><%= walletBalance %></span>
+        <% } %>
+    </a>
+    <a href="/shop" class="<%= currentPage === 'shop' ? 'active' : '' %>">
+        <i class="fa-solid fa-store"></i> Boutique
+    </a>
+    <a href="/bounties" class="<%= currentPage === 'bounties' ? 'active' : '' %>">
+        <i class="fa-solid fa-bullseye"></i> Primes
+    </a>
+
+    <% if (user.role === 'admin') { %>
+        <div class="sidebar-divider"></div>
+        <a href="/admin" class="<%= currentPage === 'admin' ? 'active' : '' %>">
+            <i class="fa-solid fa-gauge-high"></i> Admin
+        </a>
+    <% } %>
+</aside>

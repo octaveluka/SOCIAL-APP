@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-visual">
+            <div class="auth-visual-content">
+                <i class="fa-solid fa-circle-nodes brand-icon"></i>
+                <h2>Connecte-toi à ta communauté</h2>
+                <p>Retrouve tes amis, partage tes moments et discute en temps réel sur SocialApp.</p>
+
+                <div class="auth-visual-features">
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-comments"></i>
+                        Messagerie instantanée et groupes
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-users"></i>
+                        Connecte-toi avec tes amis
+                    </div>
+                    <div class="auth-visual-feature">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        Plateforme sécurisée
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-form-side">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                    <span>SocialApp</span>
+                </div>
+
+                <h2>Connexion</h2>
+                <p class="auth-subtitle">Bienvenue ! Connecte-toi à ton compte</p>
+
+                <% if (error && error.length > 0) { %>
+                    <div class="alert alert-error">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span><%= error[0] %></span>
+                    </div>
+                <% } %>
+
+                <% if (success && success.length > 0) { %>
+                    <div class="alert alert-success">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span><%= success[0] %></span>
+                    </div>
+                <% } %>
+
+                <form action="/login" method="POST">
+                    <div class="form-group">
+                        <label>Adresse e-mail</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-envelope"></i>
+                            <input type="email" name="email" placeholder="exemple@email.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mot de passe</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" name="motDePasse" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <!-- ✅ Lien Mot de passe oublié -->
+                    <div style="text-align:right; margin-top:4px; margin-bottom:16px;">
+                        <a href="/forgot-password" style="font-size:13px; color:var(--text-secondary); text-decoration:none;">
+                            Mot de passe oublié ?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="btn">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        Se connecter
+                    </button>
+                </form>
+
+                <div class="auth-footer">
+                    Pas encore de compte ? <a href="/register">Inscris-toi</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

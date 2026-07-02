@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+    <%- include('partials/navbar', { currentPage: 'profile' }) %>
+
+    <div class="main-container">
+        <%- include('partials/sidebar', { currentPage: 'profile' }) %>
+
+        <main class="feed">
+            <div class="page-header">
+                <div>
+                    <h1>Question de sécurité</h1>
+                    <div class="subtitle">Protège l'accès à ton compte en cas d'oubli</div>
+                </div>
+                <a href="/profile/edit/me" class="btn btn-secondary" style="width:auto; padding:10px 20px;">
+                    <i class="fa-solid fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <% if (error && error.length > 0) { %>
+                <div class="alert alert-error">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span><%= error[0] %></span>
+                </div>
+            <% } %>
+
+            <% if (success && success.length > 0) { %>
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span><%= success[0] %></span>
+                </div>
+            <% } %>
+
+            <!-- Statut actuel -->
+            <div class="card" style="margin-bottom:16px;">
+                <div class="section-title" style="margin-bottom:12px;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Statut de sécurité
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:var(--background); border-radius:var(--radius-sm); border:1px solid var(--border);">
+                        <div style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-primary);">
+                            <i class="fa-solid fa-circle-question" style="color:var(--primary);"></i>
+                            Question secrète
+                        </div>
+                        <% if (currentQuestion) { %>
+                            <span style="font-size:12px; font-weight:600; color:#22c55e; background:rgba(34,197,94,0.1); padding:4px 10px; border-radius:20px;">
+                                <i class="fa-solid fa-circle-check"></i> Configurée
+                            </span>
+                        <% } else { %>
+                            <span style="font-size:12px; font-weight:600; color:#ef4444; background:rgba(239,68,68,0.1); padding:4px 10px; border-radius:20px;">
+                                <i class="fa-solid fa-circle-xmark"></i> Non configurée
+                            </span>
+                        <% } %>
+                    </div>
+                    <% if (currentQuestion) { %>
+                    <div style="padding:10px 14px; background:var(--primary-light); border-radius:var(--radius-sm); font-size:13px; color:var(--text-secondary);">
+                        <span style="font-weight:600; color:var(--text-primary);">Question actuelle :</span> <%= currentQuestion %>
+                    </div>
+                    <% } %>
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:var(--background); border-radius:var(--radius-sm); border:1px solid var(--border);">
+                        <div style="display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-primary);">
+                            <i class="fa-solid fa-key" style="color:var(--primary);"></i>
+                            Codes de récupération
+                        </div>
+                        <span style="font-size:12px; font-weight:600; color:<%= codesCount > 0 ? '#22c55e' : '#f59e0b' %>; background:rgba(<%= codesCount > 0 ? '34,197,94' : '245,158,11' %>,0.1); padding:4px 10px; border-radius:20px;">
+                            <%= codesCount %> code<%= codesCount > 1 ? 's' : '' %> disponible<%= codesCount > 1 ? 's' : '' %>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modifier la question -->
+            <div class="card" style="margin-bottom:16px;">
+                <div class="section-title" style="margin-bottom:20px;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <%= currentQuestion ? 'Modifier' : 'Configurer' %> la question secrète
+                </div>
+
+                <form action="/settings/security-question" method="POST">
+                    <div class="form-group">
+                        <label>Question de sécurité</label>
+                        <div class="input-wrapper" style="padding:0;">
+                            <i class="fa-solid fa-circle-question" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); z-index:1; pointer-events:none;"></i>
+                            <select name="securityQuestion" required style="padding-left:42px; appearance:none; background:transparent; border:none; width:100%; height:48px; font-size:14px; color:var(--text-primary); cursor:pointer; outline:none;">
+                                <option value="" disabled <%= !currentQuestion ? 'selected' : '' %>>Choisir une question...</option>
+                                <% questions.forEach(q => { %>
+                                    <option value="<%= q %>" <%= currentQuestion === q ? 'selected' : '' %>><%= q %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nouvelle réponse secrète</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key"></i>
+                            <input type="text" name="securityAnswer" placeholder="Ta réponse (insensible à la casse)" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mot de passe actuel <span style="color:var(--text-muted); font-weight:400;">(confirmation)</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" name="motDePasse" placeholder="Confirme ton identité" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">
+                        <i class="fa-solid fa-check"></i>
+                        Enregistrer la question secrète
+                    </button>
+                </form>
+            </div>
+
+            <!-- Codes de récupération -->
+            <div class="card">
+                <div class="section-title" style="margin-bottom:12px;">
+                    <i class="fa-solid fa-key"></i>
+                    Codes de récupération
+                </div>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px; line-height:1.6;">
+                    Les codes de récupération permettent d'accéder à ton compte si tu oublies ton mot de passe et ta réponse secrète. Chaque code est à usage unique.
+                </p>
+
+                <div style="background:rgba(245,158,11,0.08); border:1.5px solid rgba(245,158,11,0.3); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; font-size:13px; color:var(--text-secondary);">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                    Générer de nouveaux codes <strong>annule et remplace</strong> tous tes codes actuels.
+                </div>
+
+                <button onclick="showRegenModal()" class="btn btn-secondary" style="width:auto;">
+                    <i class="fa-solid fa-rotate"></i>
+                    Générer de nouveaux codes
+                </button>
+
+                <!-- Affichage des nouveaux codes -->
+                <div id="newCodesContainer" style="display:none; margin-top:20px;">
+                    <div style="background:var(--primary-light); border:1.5px solid #c7d2fe; border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:12px; font-size:13px; color:var(--text-primary);">
+                        <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                        <strong>Sauvegarde ces codes maintenant</strong> — ils ne seront plus affichés.
+                    </div>
+                    <div id="newCodesGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="downloadNewCodes()" class="btn" style="flex:1;">
+                            <i class="fa-solid fa-download"></i> Télécharger
+                        </button>
+                        <button onclick="copyNewCodes()" class="btn btn-secondary" style="flex:1;">
+                            <i class="fa-solid fa-copy"></i> Tout copier
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal confirmation régénération -->
+    <div id="regenModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:var(--card-bg); border-radius:var(--radius); padding:28px; max-width:380px; width:calc(100% - 32px); margin:auto;">
+            <div style="font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:8px;">
+                <i class="fa-solid fa-rotate" style="color:var(--primary);"></i>
+                Régénérer les codes
+            </div>
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5;">
+                Tes <%= codesCount %> code(s) actuel(s) seront <strong>définitivement supprimés</strong>. Entre ton mot de passe pour confirmer.
+            </p>
+            <div class="form-group" style="margin-bottom:16px;">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="regenPassword" placeholder="Ton mot de passe actuel">
+                </div>
+            </div>
+            <div id="regenError" style="display:none; font-size:13px; color:#ef4444; margin-bottom:12px;"></div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeRegenModal()" class="btn btn-secondary" style="flex:1;">Annuler</button>
+                <button onclick="regenCodes()" class="btn" style="flex:1;" id="regenBtn">
+                    <i class="fa-solid fa-rotate"></i> Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let newCodes = []
+
+        function showRegenModal() {
+            document.getElementById('regenModal').style.display = 'flex'
+            document.getElementById('regenPassword').value = ''
+            document.getElementById('regenError').style.display = 'none'
+        }
+
+        function closeRegenModal() {
+            document.getElementById('regenModal').style.display = 'none'
+        }
+
+        async function regenCodes() {
+            const password = document.getElementById('regenPassword').value
+            const btn = document.getElementById('regenBtn')
+            const errEl = document.getElementById('regenError')
+
+            if (!password) {
+                errEl.textContent = 'Veuillez entrer ton mot de passe.'
+                errEl.style.display = 'block'
+                return
+            }
+
+            btn.disabled = true
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération...'
+
+            try {
+                const res = await fetch('/settings/recovery-codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ motDePasse: password })
+                })
+                const data = await res.json()
+
+                if (!res.ok) {
+                    errEl.textContent = data.error || 'Erreur'
+                    errEl.style.display = 'block'
+                    btn.disabled = false
+                    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Confirmer'
+                    return
+                }
+
+                newCodes = data.codes
+                closeRegenModal()
+                showNewCodes(newCodes)
+
+            } catch (e) {
+                errEl.textContent = 'Une erreur est survenue.'
+                errEl.style.display = 'block'
+                btn.disabled = false
+                btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Confirmer'
+            }
+        }
+
+        function showNewCodes(codes) {
+            const grid = document.getElementById('newCodesGrid')
+            const container = document.getElementById('newCodesContainer')
+            grid.innerHTML = ''
+            codes.forEach(code => {
+                const div = document.createElement('div')
+                div.style.cssText = 'background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-family:monospace;font-size:14px;font-weight:600;color:var(--text-primary);letter-spacing:1px;text-align:center;cursor:pointer;transition:background 0.2s;'
+                div.textContent = code
+                div.title = 'Cliquer pour copier'
+                div.onclick = () => {
+                    navigator.clipboard.writeText(code).then(() => {
+                        div.style.background = 'rgba(34,197,94,0.12)'
+                        div.style.borderColor = '#22c55e'
+                        setTimeout(() => { div.style.background = ''; div.style.borderColor = '' }, 1500)
+                    })
+                }
+                grid.appendChild(div)
+            })
+            container.style.display = 'block'
+            container.scrollIntoView({ behavior: 'smooth' })
+        }
+
+        function downloadNewCodes() {
+            const content = [
+                'SocialApp — Codes de récupération',
+                '===================================',
+                'Générés le : ' + new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }),
+                '',
+                'Chaque code ne peut être utilisé qu\'une seule fois.',
+                'Conserve ce fichier dans un endroit sûr.',
+                '',
+                ...newCodes.map((c, i) => `${i + 1}. ${c}`)
+            ].join('\n')
+
+            const blob = new Blob([content], { type: 'text/plain; charset=utf-8' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'socialapp-codes-recuperation.txt'
+            a.click()
+            URL.revokeObjectURL(url)
+        }
+
+        function copyNewCodes() {
+            navigator.clipboard.writeText(newCodes.join('\n'))
+        }
+    </script>
+</body>
+</html>

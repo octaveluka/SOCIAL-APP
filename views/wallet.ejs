@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/navbar', { currentPage: 'wallet' }) %>
+<div class="main-container">
+    <%- include('partials/sidebar', { currentPage: 'wallet' }) %>
+    <div class="content-area">
+        <div class="wallet-page">
+            <div class="wallet-header-card">
+                <div class="wallet-balance-display">
+                    <span class="wallet-icon-big"><i class="fa-solid fa-coins"></i></span>
+                    <div>
+                        <div class="wallet-amount">
+                            <% if (user.role === 'admin') { %>∞ <span>Illimité</span>
+                            <% } else { %><%= user.walletBalance %> <span>crédits</span><% } %>
+                        </div>
+                        <div class="wallet-label">Solde disponible</div>
+                    </div>
+                </div>
+                <div class="wallet-xp-bar-section">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span style="font-weight:600; font-size:14px;">XP : <%= user.xp %></span>
+                        <span style="font-size:12px; color:var(--text-secondary);">
+                            <% if (user.xp < xpThresholds.bronze) { %>Bronze à <%= xpThresholds.bronze %> XP
+                            <% } else if (user.xp < xpThresholds.argent) { %>Argent à <%= xpThresholds.argent %> XP
+                            <% } else if (user.xp < xpThresholds.or) { %>Or à <%= xpThresholds.or %> XP
+                            <% } else if (user.xp < xpThresholds.platine) { %>Platine à <%= xpThresholds.platine %> XP
+                            <% } else { %>Niveau maximum <i class="fa-solid fa-trophy"></i><% } %>
+                        </span>
+                    </div>
+                    <div class="xp-bar-track">
+                        <% const maxXp = user.xp < xpThresholds.bronze ? xpThresholds.bronze : user.xp < xpThresholds.argent ? xpThresholds.argent : user.xp < xpThresholds.or ? xpThresholds.or : xpThresholds.platine %>
+                        <div class="xp-bar-fill" style="width:<%= Math.min(100, (user.xp / maxXp) * 100) %>%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wallet-tiers">
+                <h3 style="margin-bottom:16px; font-size:16px; font-weight:700;">Paliers XP</h3>
+                <div class="tier-grid">
+                    <% const tiers = [
+                        {name:'Bronze', xp:100, icon:'<i class="fa-solid fa-medal" style="color:#cd7f32;"></i>', color:'#cd7f32'},
+                        {name:'Argent', xp:500, icon:'<i class="fa-solid fa-medal" style="color:#a8a9ad;"></i>', color:'#a8a9ad'},
+                        {name:'Or', xp:2000, icon:'<i class="fa-solid fa-medal" style="color:#ffd700;"></i>', color:'#ffd700'},
+                        {name:'Platine', xp:10000, icon:'<i class="fa-solid fa-gem" style="color:#b9f2ff;"></i>', color:'#b9f2ff'}
+                    ] %>
+                    <% tiers.forEach(t => { %>
+                    <div class="tier-card <%= user.xp >= t.xp ? 'unlocked' : '' %>">
+                        <div class="tier-emoji"><%- t.icon %></div>
+                        <div class="tier-name"><%= t.name %></div>
+                        <div class="tier-xp"><%= t.xp %> XP</div>
+                        <% if (user.xp >= t.xp) { %><div class="tier-badge-unlocked">✓ Débloqué</div><% } %>
+                    </div>
+                    <% }) %>
+                </div>
+            </div>
+
+            <div class="wallet-info-cards">
+                <div class="wallet-info-card">
+                    <div class="wallet-info-icon"><i class="fa-solid fa-comment-dots"></i></div>
+                    <div class="wallet-info-text">
+                        <strong>Gagne des crédits</strong>
+                        <p>Complète des primes dans le groupe Primes pour gagner des crédits.</p>
+                    </div>
+                </div>
+                <div class="wallet-info-card">
+                    <div class="wallet-info-icon"><i class="fa-solid fa-bullseye"></i></div>
+                    <div class="wallet-info-text">
+                        <strong>Gagne de l'XP</strong>
+                        <p>Envoie des messages, aide la communauté dans Avis & Solutions.</p>
+                    </div>
+                </div>
+                <div class="wallet-info-card">
+                    <div class="wallet-info-icon"><i class="fa-solid fa-store"></i></div>
+                    <div class="wallet-info-text">
+                        <strong>Dépense tes crédits</strong>
+                        <p>Achète des thèmes visuels dans la <a href="/shop">Boutique</a>.</p>
+                    </div>
+                </div>
+                <div class="wallet-info-card">
+                    <div class="wallet-info-icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                    <div class="wallet-info-text">
+                        <strong>Transfère des crédits</strong>
+                        <p>Dans une conv, tape <code>/send @pseudo montant</code> pour envoyer des crédits.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center; margin-top:24px;">
+                <a href="/bounties" class="btn-primary-action">Voir les primes disponibles</a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

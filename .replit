@@ -1,0 +1,52 @@
+modules = ["nodejs-18", "web"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+packages = ["timetrap"]
+
+[userenv]
+
+[userenv.shared]
+PORT = "5000"
+VAPID_PUBLIC_KEY = "BMc_YO_DsDv8kvBYCPGd62aWbuOiCJ6oRjRpKJP42q-sk-kanYGM5dPJTjNLEvqHj5vwXCtzLP78Pq-lM0OHUj8"
+VAPID_PRIVATE_KEY = "f6_n06nnVucjdX08hQsF9uG2NLWI5Fr9JP5trwiwowI"
+VAPID_EMAIL = "mailto:admin@socialapp.fr"
+COPILOT_API_URL = "https://delfaapiai.vercel.app/ai/copilot"
+IMAGE_API_URL = "https://gem-tw6a.onrender.com/generate"
+EDIT_API_URL = "https://gem-tw6a.onrender.com/edit"
+NODE_ENV = "production"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+deploymentTarget = "vm"
+run = ["node", "server.js"]

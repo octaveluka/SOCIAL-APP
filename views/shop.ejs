@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/navbar', { currentPage: 'shop' }) %>
+<div class="main-container">
+    <%- include('partials/sidebar', { currentPage: 'shop' }) %>
+    <div class="content-area">
+        <div class="shop-page">
+            <div class="shop-header">
+                <h2><i class="fa-solid fa-store"></i> Boutique</h2>
+                <div class="shop-balance">
+                    <i class="fa-solid fa-coins"></i>
+                    <span id="shopBalance"><%= user.walletBalance %></span> crédits
+                    <% if (user.xpBoostExpiry && new Date(user.xpBoostExpiry) > new Date()) { %>
+                        <span style="margin-left:10px;font-size:11px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;padding:2px 8px;border-radius:20px;font-weight:700;"><i class="fa-solid fa-bolt"></i> Boost XP actif</span>
+                    <% } %>
+                </div>
+            </div>
+
+            <% if (locals.success && success.length) { %>
+                <div class="flash success"><%= success[0] %></div>
+            <% } %>
+            <% if (locals.error && error.length) { %>
+                <div class="flash error"><%= error[0] %></div>
+            <% } %>
+
+            <%
+            const categories = [...new Set(shopItems.map(i => i.category))]
+            const catIcons = {
+                'Thèmes': '<i class="fa-solid fa-palette"></i>',
+                'Boosts': '<i class="fa-solid fa-bolt"></i>',
+                'Titres': '<i class="fa-solid fa-medal"></i>',
+                'Cadres': '<i class="fa-solid fa-image"></i>',
+                'Badges': '<i class="fa-solid fa-certificate"></i>',
+                'Effets': '<i class="fa-solid fa-sparkles"></i>',
+                'IA': '<i class="fa-solid fa-robot"></i>'
+            }
+            %>
+
+            <% categories.forEach(cat => { %>
+            <div class="shop-category">
+                <div class="shop-category-title">
+                    <%- catIcons[cat] || '<i class="fa-solid fa-star"></i>' %> <%= cat %>
+                </div>
+                <div class="shop-grid">
+                    <% shopItems.filter(i => i.category === cat).forEach(item => {
+                        let isOwned = false
+                        if (item.type === 'theme') isOwned = user.theme === item.theme
+                        else if (item.type === 'title') isOwned = user.profileTitle === item.value
+                        else if (item.type === 'frame') isOwned = user.profileFrame === item.value
+                        else if (item.type === 'badge') isOwned = (user.badges || []).some(b => b.type === item.value)
+                        else if (item.type === 'effect') isOwned = user.profileEffect === item.value
+                        else if (item.type === 'clone') isOwned = user.aiCloneExpiry && new Date(user.aiCloneExpiry) > new Date()
+                    %>
+                    <div class="shop-item <%= item.type === 'theme' ? 'theme-preview-' + item.theme : '' %> <%= isOwned ? 'active-theme' : '' %>">
+                        <% if (item.type === 'effect') { %>
+                        <div style="text-align:center;padding:10px 0 4px;overflow:visible;">
+                            <div class="effect-<%= item.value %>" style="display:inline-block;position:relative;overflow:visible;">
+                                <img src="<%= user.photoProfil || '/images/default.jpg' %>"
+                                     style="width:64px;height:64px;border-radius:50%;object-fit:cover;display:block;"
+                                     alt="apercu">
+                            </div>
+                        </div>
+                        <% } else { %>
+                        <div class="shop-item-emoji"><%= item.emoji %></div>
+                        <% } %>
+                        <div class="shop-item-name"><%= item.name %></div>
+                        <div class="shop-item-desc" style="font-size:11px;color:var(--text-secondary);margin:4px 0 8px;min-height:28px;line-height:1.4;"><%= item.desc %></div>
+                        <div class="shop-item-price">
+                            <% if (item.price === 0) { %>
+                                <span class="price-free">Gratuit</span>
+                            <% } else { %>
+                                <span class="price-credits"><i class="fa-solid fa-coins"></i> <%= item.price %> crédits</span>
+                            <% } %>
+                        </div>
+                        <% if (isOwned && item.type === 'clone') { %>
+                            <%
+                              const expDate = new Date(user.aiCloneExpiry)
+                              const daysLeft = Math.ceil((expDate - new Date()) / (1000*60*60*24))
+                            %>
+                            <div style="font-size:11px;color:#22c55e;font-weight:600;margin-top:4px;margin-bottom:6px;">
+                                <i class="fa-solid fa-circle-check"></i> Actif — <%= daysLeft %> j restants
+                            </div>
+                            <!-- Toggle activer/désactiver -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                <span style="font-size:12px;color:var(--text-secondary);">Répondre en mon nom</span>
+                                <label class="toggle-switch" style="margin:0;">
+                                    <input type="checkbox" class="clone-toggle-check" <%= user.aiCloneActive ? 'checked' : '' %>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <!-- Instructions -->
+                            <textarea class="clone-instructions-input" rows="3" maxlength="500"
+                                placeholder="Ex : Réponds avec humour, ne donne jamais mes infos perso…"
+                                style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:11px;background:var(--bg-secondary);color:var(--text-primary);resize:vertical;box-sizing:border-box;font-family:inherit;margin-bottom:6px;"><%= user.aiCloneInstructions || '' %></textarea>
+                            <button class="clone-save-btn btn-shop-buy" style="margin-bottom:6px;">
+                                <i class="fa-solid fa-floppy-disk"></i> Sauvegarder
+                            </button>
+                            <button class="btn-shop-buy"
+                                data-item-id="<%= item.id %>"
+                                data-price="<%= item.price %>"
+                                data-type="<%= item.type %>"
+                                data-name="<%= item.name %>"
+                                style="background:rgba(99,102,241,.15);color:#8b5cf6;font-size:11px;">
+                                <i class="fa-solid fa-rotate-right"></i> Prolonger (+1 mois)
+                            </button>
+                        <% } else if (isOwned) { %>
+                            <button class="btn-shop-active" disabled>✓ Actif</button>
+                        <% } else { %>
+                            <button class="btn-shop-buy"
+                                data-item-id="<%= item.id %>"
+                                data-price="<%= item.price %>"
+                                data-type="<%= item.type %>"
+                                data-name="<%= item.name %>">
+                                <%- item.price === 0 ? 'Réclamer' : item.type === 'xpboost' ? '<i class="fa-solid fa-bolt"></i> Activer' : item.type === 'credits' ? '<i class="fa-solid fa-coins"></i> Obtenir' : item.type === 'clone' ? '<i class="fa-solid fa-robot"></i> Activer' : 'Acheter' %>
+                            </button>
+                        <% } %>
+                    </div>
+                    <% }) %>
+                </div>
+            </div>
+            <% }) %>
+        </div>
+    </div>
+</div>
+
+<div id="shopToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:12px 24px;border-radius:12px;font-weight:600;font-size:14px;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);"></div>
+
+<style>
+.shop-category { margin-bottom: 32px; }
+.shop-category-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.shop-item { background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px 14px; text-align: center; transition: all 0.2s; }
+.shop-item:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.1); border-color: var(--primary); }
+.shop-item.active-theme { border-color: var(--primary); background: var(--primary)11; box-shadow: 0 0 0 2px var(--primary)44; }
+.shop-item-emoji { font-size: 32px; margin-bottom: 8px; }
+.shop-item-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.btn-shop-buy { width: 100%; padding: 8px; border-radius: 8px; border: none; background: var(--primary); color: #fff; font-weight: 600; font-size: 12px; cursor: pointer; transition: opacity 0.2s; margin-top: 4px; }
+.btn-shop-buy:hover { opacity: 0.85; }
+.btn-shop-active { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font-weight: 600; font-size: 12px; cursor: default; margin-top: 4px; }
+.price-free { color: #10b981; font-weight: 700; font-size: 13px; }
+.price-credits { color: #f59e0b; font-weight: 700; font-size: 13px; }
+.shop-balance { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 700; color: #f59e0b; }
+.shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.shop-header h2 { font-size: 22px; font-weight: 800; margin: 0; }
+</style>
+
+<script>
+function showToast(msg, ok=true) {
+    const t = document.getElementById("shopToast")
+    t.innerHTML = msg
+    t.style.background = ok ? "#10b981" : "#ef4444"
+    t.style.display = "block"
+    setTimeout(() => { t.style.display = "none" }, 3000)
+}
+
+// === CLONE IA — toggle activer/désactiver ===
+document.querySelectorAll(".clone-toggle-check").forEach(chk => {
+    chk.addEventListener("change", async function() {
+        const r = await fetch("/api/clone/toggle", { method: "POST" })
+        const d = await r.json()
+        if (!d.success) {
+            this.checked = !this.checked
+            showToast(d.error || "Erreur", false)
+        }
+    })
+})
+
+// === CLONE IA — sauvegarder les instructions ===
+document.querySelectorAll(".clone-save-btn").forEach(btn => {
+    btn.addEventListener("click", async function() {
+        const card = this.closest(".shop-item")
+        const textarea = card.querySelector(".clone-instructions-input")
+        if (!textarea) return
+        const orig = this.innerHTML
+        this.disabled = true
+        this.textContent = "Sauvegarde…"
+        const r = await fetch("/api/clone/instructions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ instructions: textarea.value })
+        })
+        const d = await r.json()
+        this.disabled = false
+        if (d.success) {
+            this.innerHTML = "✓ Sauvegardé"
+            setTimeout(() => { this.innerHTML = orig }, 2000)
+        } else {
+            this.innerHTML = "Erreur"
+            setTimeout(() => { this.innerHTML = orig }, 2000)
+        }
+    })
+})
+
+document.querySelectorAll(".btn-shop-buy").forEach(btn => {
+    btn.addEventListener("click", async function() {
+        const itemId = this.dataset.itemId
+        const price = parseInt(this.dataset.price)
+        const type = this.dataset.type
+        const name = this.dataset.name
+        const balance = parseInt(document.getElementById("shopBalance").textContent)
+        if (price > 0 && balance < price) {
+            showToast(`Solde insuffisant ! Tu as ${balance} crédits, il en faut ${price}.`, false)
+            return
+        }
+        this.disabled = true
+        const origText = this.textContent
+        this.textContent = "..."
+        try {
+            const res = await fetch("/api/shop/buy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ itemId })
+            })
+            const data = await res.json()
+            if (data.success) {
+                if (data.balance !== undefined) document.getElementById("shopBalance").textContent = data.balance
+                if (type === 'theme') showToast(`✓ ${name} activé !`)
+                else if (type === 'xpboost') showToast(`<i class="fa-solid fa-bolt"></i> ${name} activé — ton XP est doublé !`)
+                else if (type === 'title') showToast(`<i class="fa-solid fa-medal"></i> Titre "${name.replace('Titre ','')}" appliqué sur ton profil !`)
+                else if (type === 'frame') showToast(`<i class="fa-solid fa-image"></i> ${name} appliqué sur ton profil !`)
+                else if (type === 'badge') showToast(`<i class="fa-solid fa-certificate"></i> Badge obtenu et visible sur ton profil !`)
+                else if (type === 'credits') showToast(`<i class="fa-solid fa-coins"></i> +${data.creditsGained} crédits ajoutés à ton solde !`)
+                else if (type === 'effect') showToast(`<i class="fa-solid fa-sparkles"></i> ${name} activé sur ton profil !`)
+                else if (type === 'clone') showToast(`🤖 Clone IA activé pour 1 mois ! Va dans Paramètres pour le configurer.`)
+                setTimeout(() => location.reload(), 1500)
+            } else {
+                showToast(data.error || "Erreur lors de l'achat.", false)
+                this.disabled = false
+                this.textContent = origText
+            }
+        } catch(e) {
+            showToast("Erreur réseau.", false)
+            this.disabled = false
+            this.textContent = origText
+        }
+    })
+})
+</script>
+</body>
+</html>
